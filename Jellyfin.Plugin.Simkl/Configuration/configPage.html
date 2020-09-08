@@ -1,0 +1,260 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Simkl's TV Tracker</title>
+</head>
+<body>
+<div data-role="page" class="page type-interior pluginConfigurationPage" id="SimklConfigurationPage" data-require="emby-button,emby-checkbox,emby-input,emby-select">
+    <div data-role="content">
+        <div class="content-primary">
+            <h1>Simkl's TV Tracker</h1>
+            <form id="SimklConfigurationForm">
+                <div id="selectContainer">
+                    <select onchange="SimklConfig.onSelectorChange();" is="emby-select" id="user-selector" label="Showing plugin settings for...">
+                        <!-- This will be populated by SimklConfig.populateUsers -->
+                    </select>
+                </div>
+                <div id="loginButtonContainer" hidden>
+                    <h3>It seems you are not logged in, do you wish to log in?</h3>
+                    <button onclick="SimklConfig.startLoginProcess();" is="emby-button" type="button" class="raised button-submit block"><span>Log In</span></button>
+                    <button onclick="location.href='https://simkl.com/';" is="emby-button" type="button" class="raised block"><span>Create an account</span></button>
+                </div>
+                <div id="loggingIn" hidden>
+                    <h2>Logging In</h2>
+                    <div id="loginText"></div>
+                    <h3 id="loginPin"></h3>
+                    <span id="loginSecondsRemaining">900</span> seconds remaining
+                    <button onclick="SimklConfig.stopLoginProcess();" is="emby-button" type="button" class="raised button-cancel block"><span>Cancel</span></button>
+                </div>
+                <div id="configOptionsContainer" hidden>
+                    <h3>Hello again <span id="simklName">USERNAME</span>!</h3>
+                    <button onclick="SimklConfig.logOut();" is="emby-button" type="button" class="raised button block"><span>Log Out</span></button>
+                    <h2>Scrobbling options:</h2>
+                    <div class="checkboxcontainer">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="scrobbleMovies" />
+                            <span>Autoscrobbling Movies</span>
+                        </label>
+                    </div>
+                    <div class="checkboxcontainer">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="scrobbleShows" />
+                            <span>Autoscrobbling TV Shows</span>
+                        </label>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="scr_pct" type="number" min="0" max="100" pattern="[0-9]*" label="Scrobbling percentage:" />
+                        <div class="fieldDescription">
+                            Percentage watched needed to scrobble
+                        </div>
+                    </div>
+                    <button is="emby-button" type="submit" class="raised button-submit block"><span>${ButtonSave}</span></button>
+                    <button is="emby-button" type="button" class="raised block" onclick="history.back();"><span>${Cancel}</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script type="text/javascript">
+        var SimklConfig = {
+            guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB",
+            onLoginProccess: false,
+            configCache: [],
+            loginTimer: null,
+            remainingTimer: null,
+            finish: null,
+            populateUsers : async function (users) {
+                users.forEach(function(user) {
+                    $("#user-selector").append(new Option(user.Name, user.Id));
+                });
+            },
+            loadConfig : async function(user, config) {
+                if (config != null) this.configCache = config;
+                else config = this.configCache;
+
+                console.log("Simkl: Loading config for user " + user);
+                console.log(config);
+
+                $("#loginButtonContainer").hide();
+                $("#configOptionsContainer").hide();
+
+                if (config.userConfigs.some(e => e.guid === user && e.userToken != null && e.userToken !== "")) {
+                    $("#configOptionsContainer").show();
+                    this.populateOptionsContainer(config.userConfigs.filter(e => e.guid === user)[0]);
+                } else {
+                    $("#loginButtonContainer").show();
+                }
+            },
+            saveConfig : async function(guid) {
+                var uconfig = this.configCache.userConfigs.filter(e => e.guid === guid)[0];
+
+                for (var key in uconfig) {
+                    var element = $("#configOptionsContainer #"+key);
+                    if (element.is(":checkbox")) {
+                        uconfig[key] = element.attr("checked");
+                    } else {
+                        if (element.val() != null) uconfig[key] = element.val();
+                    }
+                }
+
+                console.log("Saving config:");
+                console.log(this.configCache);
+                ApiClient.updatePluginConfiguration(this.guid, this.configCache).then(Dashboard.processPluginConfigurationUpdateResult);
+            },
+            populateOptionsContainer : async function(userConfig) {
+                $("#simklName").html(SimklAPI.getUserSettings(userConfig.guid).user.name);
+
+                for (var key in userConfig) {
+                    $("#configOptionsContainer input[type=checkbox]#"+key).attr("checked", userConfig[key]);
+                    $("#configOptionsContainer input[type=number]#"+key).val(userConfig[key]);
+                }
+            },
+            startLoginProcess : async function () {
+                this.onLoginProcess = true;
+
+                var code = SimklAPI.getCode();
+                this.finish = new Date();
+                this.finish.setSeconds(this.finish.getSeconds() + code.expires_in);
+                this.nextInterval = new Date();
+
+                this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this,code), code.interval*1000);
+                this.remainingTimer = window.setInterval(function() {
+                    $("#loginSecondsRemaining").html(Math.round((SimklConfig.finish.getTime() - (new Date().getTime()))/1000));
+                } ,1000);
+
+                $("#loginText").html("Please visit <a href='" + code.verification_url + "/" + code.user_code +
+                    "' target='_blank'>" + code.verification_url + "</a> on your phone or computer and enter the following code:");
+                $("#loginPin").html(code.user_code);
+
+                $("#loginButtonContainer").hide();
+                await $("#loggingIn").show();
+            },
+            checkLoginProcess : function (code) {
+                var response = SimklAPI.checkCode(code.user_code);
+                console.log("Response:");
+                console.log(response);
+
+                if (new Date() > this.finish) {
+                    Dashboard.alert("Timed out!");
+                    this.stopLoginProcess();
+                } else if (response.result === "KO") {
+                    this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this,code), code.interval*1000);
+                } else if (response.result === "OK") {
+                    this.stopLoginProcess();
+
+                    // Save key on settings
+                    var uguid = $("#user-selector").val();
+                    var filter = this.configCache.userConfigs.filter(function(c) {
+                        return c.guid === uguid;
+                    });
+                    if (filter.length > 0) {
+                        filter[0].userToken = response.access_token;
+                    } else {
+                        this.configCache.userConfigs.push({
+                            guid: uguid,
+                            userToken: response.access_token
+                        });
+                    }
+
+                    console.log(this.configCache);
+
+                    ApiClient.updatePluginConfiguration(this.guid, this.configCache);
+                    this.loadConfig(uguid);
+                } else {
+                    Dashboard.alert("Error logging in");
+                }
+            },
+            stopLoginProcess : async function () {
+                this.onLoginProcess = false;
+                window.clearTimeout(this.loginTimer);
+                window.clearInterval(this.remainingTimer);
+                $("#loginButtonContainer").show();
+                $("#loggingIn").hide();
+            },
+            onSelectorChange : async function () {
+                if (this.onLoginProcess) this.stopLoginProcess();
+                this.loadConfig($("#user-selector").val(), null);
+            },
+            logOut : function(uguid) {
+                if (uguid == null) uguid = $("#user-selector").val();
+
+                // e1f34a57cb3c4767ab6f29cc5c7c0566
+                var filter = this.configCache.userConfigs.filter(function (c) {
+                    return c.guid === uguid;
+                });
+                console.log(filter);
+
+                if (filter.length > 0) {
+                    filter[0].userToken = "";
+                } else {
+                    console.log("User not found " + uguid);
+                }
+
+                console.log(this.configCache);
+                ApiClient.updatePluginConfiguration(this.guid, this.configCache);
+                this.loadConfig(uguid);
+            }
+        }
+
+        var SimklAPI = {
+            getCode: function () {
+                var uri = "/Simkl/oauth/pin";
+                var request = new XMLHttpRequest();
+                request.open("GET", uri, false);
+                request.send();
+
+                if (request.status === 200) {
+                    return $.parseJSON(request.response);
+                } else {
+                    console.log(request);
+                    Dashboard.alert("Some error occurred, see browser log for more details");
+                    SimklConfig.stopLoginProcess();
+                }
+            },
+            checkCode : function (user_code) {
+                var uri = "/Simkl/oauth/pin/" + user_code;
+                var request = new XMLHttpRequest();
+                request.open("GET", uri, false);
+                request.send();
+
+                if (request.status === 200) {
+                    return $.parseJSON(request.response);
+                } else {
+                    console.log(request);
+                    Dashboard.alert("Some error occurred, see browser log for more details");
+                    SimklConfig.stopLoginProcess();
+                }
+            },
+            getUserSettings: function (secret) {
+                var uri = "/Simkl/users/settings/" + secret;
+                var request = new XMLHttpRequest();
+                request.open("GET", uri, false);
+                request.send();
+
+                if (request.status === 200) {
+                    return $.parseJSON(request.response);
+                } else {
+                    console.log(request);
+                    Dashboard.alert("Something went wrong, see logs for more details");
+                }
+            }
+        }
+
+        $("#SimklConfigurationPage").on("pageshow", async function(e) {
+            Dashboard.showLoadingMsg();
+            await Promise.all([
+                ApiClient.getUsers().then(SimklConfig.populateUsers),
+                ApiClient.getPluginConfiguration(SimklConfig.guid).then(SimklConfig.loadConfig.bind(SimklConfig, ApiClient.getCurrentUserId()))]);
+            Dashboard.hideLoadingMsg();
+        });
+
+        $("#SimklConfigurationForm").on("submit", function(e) {
+            Dashboard.showLoadingMsg();
+            SimklConfig.saveConfig($("#user-selector").val());
+            Dashboard.hideLoadingMsg();
+
+            return false;
+        });
+    </script>
+</div>
+</body>
+</html>
