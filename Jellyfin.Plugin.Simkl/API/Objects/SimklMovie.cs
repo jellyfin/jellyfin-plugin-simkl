@@ -15,28 +15,28 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <param name="item">The base item dto.</param>
         public SimklMovie(BaseItemDto item)
         {
-            Title = item.OriginalTitle;
-            Year = item.ProductionYear;
-            Ids = new SimklMovieIds(item.ProviderIds);
-            WatchedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH\\:mm\\:ss", CultureInfo.InvariantCulture);
+            title = item.OriginalTitle;
+            year = item.ProductionYear;
+            ids = new SimklMovieIds(item.ProviderIds);
+            watched_at = DateTime.UtcNow.ToString("yyyy-MM-dd HH\\:mm\\:ss", CultureInfo.InvariantCulture);
         }
 
         /// <summary>
         /// Gets or sets the movie title.
         /// </summary>
-        public string Title { get; set; }
+        public string title { get; set; }
 
         /// <summary>
         /// Gets or sets the year.
         /// </summary>
-        public int? Year { get; set; }
+        public int? year { get; set; }
 
         /// <inheritdoc />
-        public override SimklIds Ids { get; set; }
+        public override SimklIds ids { get; set; }
 
         /// <summary>
         /// Gets watched at.
         /// </summary>
-        public string WatchedAt { get; }
+        public string watched_at { get; }
     }
 }

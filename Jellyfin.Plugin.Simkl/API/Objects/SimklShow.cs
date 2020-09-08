@@ -13,19 +13,19 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <param name="mediaInfo">The media info.</param>
         public SimklShow(BaseItemDto mediaInfo)
         {
-            Title = mediaInfo.SeriesName;
-            Ids = new SimklShowIds(mediaInfo.ProviderIds);
-            Year = mediaInfo.ProductionYear;
-            Seasons = new Season[]
+            title = mediaInfo.SeriesName;
+            ids = new SimklShowIds(mediaInfo.ProviderIds);
+            year = mediaInfo.ProductionYear;
+            seasons = new[]
             {
                 new Season
                 {
-                    Number = mediaInfo.ParentIndexNumber,
-                    Episodes = new[]
+                    number = mediaInfo.ParentIndexNumber,
+                    episodes = new[]
                     {
                         new ShowEpisode
                         {
-                            Number = mediaInfo.IndexNumber
+                            number = mediaInfo.IndexNumber
                         }
                     }
                 }
@@ -35,21 +35,21 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Gets or sets title.
         /// </summary>
-        public string Title { get; set; }
+        public string title { get; set; }
 
         /// <summary>
         /// Gets or sets year.
         /// </summary>
-        public int? Year { get; set; }
+        public int? year { get; set; }
 
         /// <summary>
         /// Gets or sets seasons.
         /// </summary>
-        public Season[] Seasons { get; set; }
+        public Season[] seasons { get; set; }
 
         /// <summary>
         /// Gets or sets ids.
         /// </summary>
-        public override SimklIds Ids { get; set; }
+        public override SimklIds ids { get; set; }
     }
 }

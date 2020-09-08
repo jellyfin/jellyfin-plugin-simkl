@@ -8,16 +8,16 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Gets or sets the file.
         /// </summary>
-        public string File { get; set; }
+        public string file { get; set; }
 
         /// <summary>
         /// Gets or sets the part.
         /// </summary>
-        public int? Part { get; set; }
+        public int? part { get; set; }
 
         /// <summary>
         /// Gets or sets the hash.
         /// </summary>
-        public string Hash { get; set; }
+        public string hash { get; set; }
     }
 }

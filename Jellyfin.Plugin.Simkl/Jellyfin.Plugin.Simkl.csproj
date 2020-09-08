@@ -6,7 +6,7 @@
         <FileVersion>1.0.0.0</FileVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <NoWarn>CA1707;CA1819</NoWarn>
+        <NoWarn>CA1707;CA1819;SA1300</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

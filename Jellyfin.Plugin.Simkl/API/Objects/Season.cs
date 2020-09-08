@@ -8,11 +8,11 @@
         /// <summary>
         /// Gets or sets the season number.
         /// </summary>
-        public int? Number { get; set; }
+        public int? number { get; set; }
 
         /// <summary>
         /// Gets or sets the episodes.
         /// </summary>
-        public ShowEpisode[] Episodes { get; set; }
+        public ShowEpisode[] episodes { get; set; }
     }
 }

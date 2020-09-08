@@ -19,31 +19,31 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Gets or sets the tvdb id.
         /// </summary>
-        public int? Tvdb { get; set; }
+        public int? tvdb { get; set; }
 
         /// <summary>
         /// Gets or sets the mal id.
         /// </summary>
-        public int? Mal { get; set; }
+        public int? mal { get; set; }
 
         /// <summary>
         /// Gets or sets the anidb id.
         /// </summary>
-        public int? Anidb { get; set; }
+        public int? anidb { get; set; }
 
         /// <summary>
         /// Gets or sets the hulu id.
         /// </summary>
-        public int? Hulu { get; set; }
+        public int? hulu { get; set; }
 
         /// <summary>
         /// Gets or sets the crunchyroll id.
         /// </summary>
-        public int? Crunchyroll { get; set; }
+        public int? crunchyroll { get; set; }
 
         /// <summary>
         /// Gets or sets the movie db id.
         /// </summary>
-        public string Moviedb { get; set; }
+        public string moviedb { get; set; }
     }
 }

@@ -8,6 +8,6 @@
         /// <summary>
         /// Gets or sets ids.
         /// </summary>
-        public abstract SimklIds Ids { get; set; }
+        public abstract SimklIds ids { get; set; }
     }
 }

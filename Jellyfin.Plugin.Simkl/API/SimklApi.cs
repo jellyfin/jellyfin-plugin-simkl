@@ -93,7 +93,7 @@ namespace Jellyfin.Plugin.Simkl.API
                 // Wontfix: Custom status codes
                 // "You don't get to pick your response code" - Luke (System Architect of Emby)
                 // https://emby.media/community/index.php?/topic/61889-wiki-issue-resultfactorythrowerror/
-                return new UserSettings { Error = "user_token_failed" };
+                return new UserSettings { error = "user_token_failed" };
             }
         }
 
@@ -108,7 +108,7 @@ namespace Jellyfin.Plugin.Simkl.API
             var history = CreateHistoryFromItem(item);
             var r = await SyncHistoryAsync(history, userToken).ConfigureAwait(false);
             _logger.LogDebug("Response: " + _json.SerializeToString(r));
-            if (history.Movies.Count == r.Added.Movies && history.Shows.Count == r.Added.Shows)
+            if (history.movies.Count == r.Added.Movies && history.shows.Count == r.Added.Shows)
             {
                 return (true, item);
             }
@@ -129,7 +129,7 @@ namespace Jellyfin.Plugin.Simkl.API
             r = await SyncHistoryAsync(history, userToken).ConfigureAwait(false);
             _logger.LogDebug("Response: " + _json.SerializeToString(r));
 
-            return (history.Movies.Count == r.Added.Movies && history.Shows.Count == r.Added.Shows, item);
+            return (history.movies.Count == r.Added.Movies && history.shows.Count == r.Added.Shows, item);
         }
 
         /// <summary>
@@ -139,10 +139,10 @@ namespace Jellyfin.Plugin.Simkl.API
         /// <returns>Search file response.</returns>
         private async Task<SearchFileResponse> GetFromFile(string filename)
         {
-            var f = new SimklFile { File = filename };
+            var f = new SimklFile { file = filename };
             _logger.LogInformation("Posting: " + _json.SerializeToString(f));
             using var r = new StreamReader(await Post("/search/file/", null, f).ConfigureAwait(false));
-            var t = r.ReadToEnd();
+            var t = await r.ReadToEndAsync().ConfigureAwait(false);
             _logger.LogDebug("Response: " + t);
             return _json.DeserializeFromString<SearchFileResponse>(t);
         }
@@ -166,9 +166,9 @@ namespace Jellyfin.Plugin.Simkl.API
                     throw new InvalidDataException("type != movie (" + mo.Type + ")");
                 }
 
-                item.Name = mo.Movie.Title;
-                item.ProductionYear = mo.Movie.Year;
-                history.Movies.Add(mo.Movie);
+                item.Name = mo.Movie.title;
+                item.ProductionYear = mo.Movie.year;
+                history.movies.Add(mo.Movie);
             }
             else if (item.IsSeries == true || item.Type == "Episode")
             {
@@ -177,12 +177,12 @@ namespace Jellyfin.Plugin.Simkl.API
                     throw new InvalidDataException("type != episode (" + mo.Type + ")");
                 }
 
-                item.Name = mo.Episode.Title;
-                item.SeriesName = mo.Show.Title;
-                item.IndexNumber = mo.Episode.Episode;
-                item.ParentIndexNumber = mo.Episode.Season;
-                item.ProductionYear = mo.Show.Year;
-                history.Episodes.Add(mo.Episode);
+                item.Name = mo.Episode.title;
+                item.SeriesName = mo.Show.title;
+                item.IndexNumber = mo.Episode.episode;
+                item.ParentIndexNumber = mo.Episode.season;
+                item.ProductionYear = mo.Show.year;
+                history.episodes.Add(mo.Episode);
             }
 
             return (history, item);
@@ -212,12 +212,12 @@ namespace Jellyfin.Plugin.Simkl.API
 
             if (item.IsMovie == true || item.Type == "Movie")
             {
-                history.Movies.Add(new SimklMovie(item));
+                history.movies.Add(new SimklMovie(item));
             }
             else if (item.IsSeries == true || item.Type == "Episode")
             {
                 // TODO: TV Shows scrobbling (WIP)
-                history.Shows.Add(new SimklShow(item));
+                history.shows.Add(new SimklShow(item));
             }
 
             return history;

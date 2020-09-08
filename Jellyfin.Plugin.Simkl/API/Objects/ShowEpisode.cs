@@ -8,7 +8,7 @@
         /// <summary>
         /// Gets or sets episode number.
         /// </summary>
-        public int? Number { get; set; }
+        public int? number { get; set; }
         // TODO: watched_at
     }
 }

@@ -101,7 +101,7 @@
                 ApiClient.updatePluginConfiguration(this.guid, this.configCache).then(Dashboard.processPluginConfigurationUpdateResult);
             },
             populateOptionsContainer : async function(userConfig) {
-                $("#simklName").html(SimklAPI.getUserSettings(userConfig.Id).User.Name);
+                $("#simklName").html(SimklAPI.getUserSettings(userConfig.Id).user.name);
 
                 for (var key in userConfig) {
                     console.log(key, userConfig[key]);

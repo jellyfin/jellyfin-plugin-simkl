@@ -14,24 +14,24 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// </summary>
         public SimklHistory()
         {
-            Movies = new List<SimklMovie>();
-            Shows = new List<SimklShow>();
-            Episodes = new List<SimklEpisode>();
+            movies = new List<SimklMovie>();
+            shows = new List<SimklShow>();
+            episodes = new List<SimklEpisode>();
         }
 
         /// <summary>
         /// Gets or sets list of movies.
         /// </summary>
-        public List<SimklMovie> Movies { get; set; }
+        public List<SimklMovie> movies { get; set; }
 
         /// <summary>
         /// Gets or sets the list of shows.
         /// </summary>
-        public List<SimklShow> Shows { get; set; }
+        public List<SimklShow> shows { get; set; }
 
         /// <summary>
         /// Gets or sets the list of episodes.
         /// </summary>
-        public List<SimklEpisode> Episodes { get; set; }
+        public List<SimklEpisode> episodes { get; set; }
     }
 }

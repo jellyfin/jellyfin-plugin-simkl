@@ -17,26 +17,26 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Gets or sets ids.
         /// </summary>
-        public override SimklIds Ids { get; set; }
+        public override SimklIds ids { get; set; }
 
         /// <summary>
         /// Gets or sets the title.
         /// </summary>
-        public string Title { get; set; }
+        public string title { get; set; }
 
         /// <summary>
         /// Gets or sets the season.
         /// </summary>
-        public int Season { get; set; }
+        public int season { get; set; }
 
         /// <summary>
         /// Gets or sets the episode.
         /// </summary>
-        public int Episode { get; set; }
+        public int episode { get; set; }
 
         /// <summary>
         /// Gets or sets multipart.
         /// </summary>
-        public bool? Multipart { get; set; }
+        public bool? multipart { get; set; }
     }
 }

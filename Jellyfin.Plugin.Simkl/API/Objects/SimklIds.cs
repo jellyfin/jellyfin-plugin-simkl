@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Reflection;
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
 {
@@ -17,14 +17,25 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         {
             foreach (var (key, value) in providerIds)
             {
-                var prop = GetType().GetProperty(key, BindingFlags.IgnoreCase);
-                if (prop.PropertyType == typeof(int?))
+                if (key.Equals(nameof(simkl), StringComparison.OrdinalIgnoreCase))
                 {
-                    prop.SetValue(this, int.Parse(value, NumberStyles.Any, CultureInfo.InvariantCulture));
+                    simkl = Convert.ToInt32(value, CultureInfo.InvariantCulture);
                 }
-                else if (prop.PropertyType == typeof(string))
+                else if (key.Equals(nameof(imdb), StringComparison.OrdinalIgnoreCase))
                 {
-                    prop.SetValue(this, value);
+                    imdb = value;
+                }
+                else if (key.Equals(nameof(slug), StringComparison.OrdinalIgnoreCase))
+                {
+                    slug = value;
+                }
+                else if (key.Equals(nameof(netflix), StringComparison.OrdinalIgnoreCase))
+                {
+                    netflix = value;
+                }
+                else if (key.Equals(nameof(tmdb), StringComparison.OrdinalIgnoreCase))
+                {
+                    tmdb = value;
                 }
             }
         }
@@ -32,26 +43,26 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Gets or sets simkl.
         /// </summary>
-        public int? Simkl { get; set; }
+        public int? simkl { get; set; }
 
         /// <summary>
         /// Gets or sets the imdb id.
         /// </summary>
-        public string Imdb { get; set; }
+        public string imdb { get; set; }
 
         /// <summary>
         /// Gets or sets the slug.
         /// </summary>
-        public string Slug { get; set; }
+        public string slug { get; set; }
 
         /// <summary>
         /// Gets or sets the netflix id.
         /// </summary>
-        public string Netflix { get; set; }
+        public string netflix { get; set; }
 
         /// <summary>
         /// Gets or sets the TMDb id.
         /// </summary>
-        public string Tmdb { get; set; }
+        public string tmdb { get; set; }
     }
 }
