@@ -1,5 +1,6 @@
 ﻿using Jellyfin.Plugin.Simkl.API.Objects;
 using Jellyfin.Plugin.Simkl.API.Responses;
+using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Services;
@@ -14,20 +15,20 @@ namespace Jellyfin.Plugin.Simkl.API
     public class ServerEndpoint : IService, IHasResultFactory
     {
         private readonly SimklApi _api;
-        private readonly ILogger _logger;
+        private readonly ILogger<ServerEndpoint> _logger;
         private readonly IJsonSerializer _json;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ServerEndpoint"/> class.
         /// </summary>
-        /// <param name="api">The simkl api.</param>
-        /// <param name="logger">Instance of the <see cref="ILogger{ServerEndpoint}"/> interface.</param>
+        /// <param name="loggerFactory">Instance of the <see cref="ILoggerFactory"/> interface.</param>
         /// <param name="json">Instance of the <see cref="IJsonSerializer"/> interface.</param>
-        public ServerEndpoint(SimklApi api, ILogger logger, IJsonSerializer json)
+        /// <param name="httpClient">Instance of the <see cref="IHttpClient"/> interface.</param>
+        public ServerEndpoint(ILoggerFactory loggerFactory, IJsonSerializer json, IHttpClient httpClient)
         {
-            _api = api;
-            _logger = logger;
+            _logger = loggerFactory.CreateLogger<ServerEndpoint>();
             _json = json;
+            _api = new SimklApi(json, loggerFactory.CreateLogger<SimklApi>(), httpClient);
         }
 
         /// <summary>
@@ -57,7 +58,7 @@ namespace Jellyfin.Plugin.Simkl.API
         /// <returns>Code status response.</returns>
         public CodeStatusResponse Get(GetPinStatus request)
         {
-            return _api.GetCodeStatus(request.UserCode).GetAwaiter().GetResult();
+            return _api.GetCodeStatus(request.user_code).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -68,7 +69,7 @@ namespace Jellyfin.Plugin.Simkl.API
         public UserSettings Get(GetUserSettings request)
         {
             _logger.LogDebug(_json.SerializeToString(request));
-            return _api.GetUserSettings(SimklPlugin.Instance.Configuration.GetByGuid(request.UserId).UserToken).Result;
+            return _api.GetUserSettings(SimklPlugin.Instance.Configuration.GetByGuid(request.UserId).UserToken).GetAwaiter().GetResult();
         }
     }
 }

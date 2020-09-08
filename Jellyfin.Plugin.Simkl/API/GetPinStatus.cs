@@ -1,5 +1,6 @@
 ﻿using Jellyfin.Plugin.Simkl.API.Responses;
 using MediaBrowser.Model.Services;
+#pragma warning disable SA1300
 
 namespace Jellyfin.Plugin.Simkl.API
 {
@@ -13,6 +14,6 @@ namespace Jellyfin.Plugin.Simkl.API
         /// Gets or sets user code.
         /// </summary>
         [ApiMember(Name = "user_code", Description = "pin to be introduced by the user", IsRequired = true, DataType = "string", ParameterType = "path", Verb = "GET")]
-        public string UserCode { get; set; }
+        public string user_code { get; set; }
     }
 }

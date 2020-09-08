@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.Json.Serialization;
+#pragma warning disable SA1300
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
 {
@@ -17,7 +18,7 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// Gets or sets joined at.
         /// </summary>
         [JsonPropertyName("joined_at")]
-        public DateTime JoinedAt { get; set; }
+        public DateTime joined_at { get; set; }
 
         /// <summary>
         /// Gets or sets gender.

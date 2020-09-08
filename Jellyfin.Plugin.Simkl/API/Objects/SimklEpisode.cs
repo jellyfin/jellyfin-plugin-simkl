@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+#pragma warning disable SA1300
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
 {
@@ -11,7 +12,7 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// Gets or sets watched at.
         /// </summary>
         [JsonPropertyName("watched_at")]
-        public string WatchedAt { get; set; }
+        public string watched_at { get; set; }
 
         /// <summary>
         /// Gets or sets ids.

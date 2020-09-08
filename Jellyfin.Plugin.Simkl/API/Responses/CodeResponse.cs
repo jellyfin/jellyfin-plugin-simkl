@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+#pragma warning disable SA1300
 
 namespace Jellyfin.Plugin.Simkl.API.Responses
 {
@@ -16,25 +17,25 @@ namespace Jellyfin.Plugin.Simkl.API.Responses
         /// Gets or sets device code.
         /// </summary>
         [JsonPropertyName("device_code")]
-        public string DeviceCode { get; set; }
+        public string device_code { get; set; }
 
         /// <summary>
         /// Gets or sets user code.
         /// </summary>
         [JsonPropertyName("user_code")]
-        public string UserCode { get; set; }
+        public string user_code { get; set; }
 
         /// <summary>
         /// Gets or sets verification url.
         /// </summary>
         [JsonPropertyName("verification_url")]
-        public string VerificationUrl { get; set; }
+        public string verification_url { get; set; }
 
         /// <summary>
         /// Gets or sets expires in.
         /// </summary>
         [JsonPropertyName("expires_in")]
-        public int ExpiresIn { get; set; }
+        public int expires_in { get; set; }
 
         /// <summary>
         /// Gets or sets interval.

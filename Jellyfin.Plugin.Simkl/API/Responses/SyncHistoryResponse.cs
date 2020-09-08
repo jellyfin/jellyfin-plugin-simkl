@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+#pragma warning disable SA1300
 
 namespace Jellyfin.Plugin.Simkl.API.Responses
 {
@@ -16,6 +17,6 @@ namespace Jellyfin.Plugin.Simkl.API.Responses
         /// Gets or sets not found.
         /// </summary>
         [JsonPropertyName("not_found")]
-        public SyncHistoryNotFound NotFound { get; set; }
+        public SyncHistoryNotFound not_found { get; set; }
     }
 }

@@ -32,18 +32,18 @@
                     <h2>Scrobbling options:</h2>
                     <div class="checkboxcontainer">
                         <label>
-                            <input is="emby-checkbox" type="checkbox" id="scrobbleMovies" />
+                            <input is="emby-checkbox" type="checkbox" id="ScrobbleMovies" />
                             <span>Autoscrobbling Movies</span>
                         </label>
                     </div>
                     <div class="checkboxcontainer">
                         <label>
-                            <input is="emby-checkbox" type="checkbox" id="scrobbleShows" />
+                            <input is="emby-checkbox" type="checkbox" id="ScrobbleShows" />
                             <span>Autoscrobbling TV Shows</span>
                         </label>
                     </div>
                     <div class="inputContainer">
-                        <input is="emby-input" id="scr_pct" type="number" min="0" max="100" pattern="[0-9]*" label="Scrobbling percentage:" />
+                        <input is="emby-input" id="ScrobblePercentage" type="number" min="0" max="100" pattern="[0-9]*" label="Scrobbling percentage:" />
                         <div class="fieldDescription">
                             Percentage watched needed to scrobble
                         </div>
@@ -77,20 +77,20 @@
                 $("#loginButtonContainer").hide();
                 $("#configOptionsContainer").hide();
 
-                if (config.userConfigs.some(e => e.guid === user && e.userToken != null && e.userToken !== "")) {
+                if (config.UserConfigs.some(e => e.Id === user && e.UserToken != null && e.UserToken !== "")) {
                     $("#configOptionsContainer").show();
-                    this.populateOptionsContainer(config.userConfigs.filter(e => e.guid === user)[0]);
+                    this.populateOptionsContainer(config.UserConfigs.filter(e => e.Id === user)[0]);
                 } else {
                     $("#loginButtonContainer").show();
                 }
             },
             saveConfig : async function(guid) {
-                var uconfig = this.configCache.userConfigs.filter(e => e.guid === guid)[0];
+                var uconfig = this.configCache.UserConfigs.filter(e => e.Id === guid)[0];
 
                 for (var key in uconfig) {
                     var element = $("#configOptionsContainer #"+key);
                     if (element.is(":checkbox")) {
-                        uconfig[key] = element.attr("checked");
+                        uconfig[key] = element.is(':checked');
                     } else {
                         if (element.val() != null) uconfig[key] = element.val();
                     }
@@ -101,9 +101,10 @@
                 ApiClient.updatePluginConfiguration(this.guid, this.configCache).then(Dashboard.processPluginConfigurationUpdateResult);
             },
             populateOptionsContainer : async function(userConfig) {
-                $("#simklName").html(SimklAPI.getUserSettings(userConfig.guid).user.name);
+                $("#simklName").html(SimklAPI.getUserSettings(userConfig.Id).User.Name);
 
                 for (var key in userConfig) {
+                    console.log(key, userConfig[key]);
                     $("#configOptionsContainer input[type=checkbox]#"+key).attr("checked", userConfig[key]);
                     $("#configOptionsContainer input[type=number]#"+key).val(userConfig[key]);
                 }
@@ -116,7 +117,7 @@
                 this.finish.setSeconds(this.finish.getSeconds() + code.expires_in);
                 this.nextInterval = new Date();
 
-                this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this,code), code.interval*1000);
+                this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this,code), code.Interval*1000);
                 this.remainingTimer = window.setInterval(function() {
                     $("#loginSecondsRemaining").html(Math.round((SimklConfig.finish.getTime() - (new Date().getTime()))/1000));
                 } ,1000);
@@ -136,22 +137,22 @@
                 if (new Date() > this.finish) {
                     Dashboard.alert("Timed out!");
                     this.stopLoginProcess();
-                } else if (response.result === "KO") {
-                    this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this,code), code.interval*1000);
-                } else if (response.result === "OK") {
+                } else if (response.Result === "KO") {
+                    this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this,code), code.Interval*1000);
+                } else if (response.Result === "OK") {
                     this.stopLoginProcess();
 
                     // Save key on settings
                     var uguid = $("#user-selector").val();
-                    var filter = this.configCache.userConfigs.filter(function(c) {
-                        return c.guid === uguid;
+                    var filter = this.configCache.UserConfigs.filter(function(c) {
+                        return c.Id === uguid;
                     });
                     if (filter.length > 0) {
-                        filter[0].userToken = response.access_token;
+                        filter[0].UserToken = response.access_token;
                     } else {
-                        this.configCache.userConfigs.push({
-                            guid: uguid,
-                            userToken: response.access_token
+                        this.configCache.UserConfigs.push({
+                            Id: uguid,
+                            UserToken: response.access_token
                         });
                     }
 
@@ -178,13 +179,13 @@
                 if (uguid == null) uguid = $("#user-selector").val();
 
                 // e1f34a57cb3c4767ab6f29cc5c7c0566
-                var filter = this.configCache.userConfigs.filter(function (c) {
-                    return c.guid === uguid;
+                var filter = this.configCache.UserConfigs.filter(function (c) {
+                    return c.Id === uguid;
                 });
                 console.log(filter);
 
                 if (filter.length > 0) {
-                    filter[0].userToken = "";
+                    filter[0].UserToken = "";
                 } else {
                     console.log("User not found " + uguid);
                 }
