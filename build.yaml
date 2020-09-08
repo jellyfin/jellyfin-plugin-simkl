@@ -1,0 +1,14 @@
+---
+name: "Simkl"
+guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB"
+version: "1.0.0.0"
+targetAbi: "10.6.0.0"
+owner: "crobibero"
+overview: "Scrobble to Simkl"
+description: >
+  Scrobble your watched Movies, TV Shows and Anime to Simkl and share your progress with friends!
+category: "General"
+artifacts:
+- "Jellyfin.Plugin.Simkl.dll"
+changelog: >
+  Initial release
