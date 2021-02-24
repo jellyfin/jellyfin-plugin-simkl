@@ -72,29 +72,29 @@ namespace Jellyfin.Plugin.Simkl.Services
             }
         }
 
-        private static bool CanBeScrobbled(UserConfig config, SessionInfo session, BaseItemDto mediaInfo, bool playedToCompletion)
+        private static bool CanBeScrobbled(UserConfig config, PlaybackProgressEventArgs playbackProgress)
         {
-            if (!playedToCompletion)
+            var position = playbackProgress.PlaybackPositionTicks;
+            var runtime = playbackProgress.MediaInfo.RunTimeTicks;
+
+            if (runtime != null)
             {
-                if (session.NowPlayingItem.RunTimeTicks != null)
-                {
-                    var percentageWatched = session.PlayState.PositionTicks / (float)session.NowPlayingItem.RunTimeTicks * 100f;
+                var percentageWatched = position / (float)runtime * 100f;
 
-                    // If percentage watched is below minimum, can't scrobble
-                    if (percentageWatched < config.ScrobblePercentage)
-                    {
-                        return false;
-                    }
-                }
-
-                // If it's below minimum length, can't scrobble
-                if (session.NowPlayingItem.RunTimeTicks < 60 * 10000 * config.MinLength)
+                // If percentage watched is below minimum, can't scrobble
+                if (percentageWatched < config.ScrobblePercentage)
                 {
                     return false;
                 }
             }
 
-            return mediaInfo.Type switch
+            // If it's below minimum length, can't scrobble
+            if (runtime < 60 * 10000 * config.MinLength)
+            {
+                return false;
+            }
+
+            return playbackProgress.MediaInfo.Type switch
             {
                 nameof(Movie) => config.ScrobbleMovies,
                 nameof(Episode) => config.ScrobbleShows,
@@ -110,15 +110,15 @@ namespace Jellyfin.Plugin.Simkl.Services
             }
 
             _nextTry = DateTime.UtcNow.AddSeconds(30);
-            await ScrobbleSession(e, false);
+            await ScrobbleSession(e);
         }
 
         private async void OnPlaybackStopped(object? sessions, PlaybackStopEventArgs e)
         {
-            await ScrobbleSession(e, e.PlayedToCompletion);
+            await ScrobbleSession(e);
         }
 
-        private async Task ScrobbleSession(PlaybackProgressEventArgs eventArgs, bool playedToCompletion)
+        private async Task ScrobbleSession(PlaybackProgressEventArgs eventArgs)
         {
             try
             {
@@ -133,7 +133,7 @@ namespace Jellyfin.Plugin.Simkl.Services
                     return;
                 }
 
-                if (!CanBeScrobbled(userConfig, eventArgs.Session, eventArgs.MediaInfo, playedToCompletion))
+                if (!CanBeScrobbled(userConfig, eventArgs))
                 {
                     return;
                 }
