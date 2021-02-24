@@ -111,11 +111,13 @@
 
                 for (const key in uconfig) {
                     const element = document.querySelector("#configOptionsContainer #" + key);
-                    if (element.type === 'checkbox') {
-                        uconfig[key] = element.checked;
-                    } else {
-                        if (element.value != null) {
-                            uconfig[key] = element.value;
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            uconfig[key] = element.checked;
+                        } else {
+                            if (element.value != null) {
+                                uconfig[key] = element.value;
+                            }
                         }
                     }
                 }
@@ -128,7 +130,6 @@
                 SimklConfig.simklName.innerText = (await SimklAPI.getUserSettings(userConfig.Id)).user.name;
 
                 for (const key in userConfig) {
-                    console.log(key, userConfig[key]);
                     const chk = document.querySelector("#configOptionsContainer input[type=checkbox]#" + key);
                     if (chk) {
                         chk.checked = userConfig[key];
@@ -144,7 +145,6 @@
                 this.onLoginProcess = true;
 
                 const code = await SimklAPI.getCode();
-                console.log(code);
                 this.finish = new Date();
                 this.finish.setSeconds(this.finish.getSeconds() + code.expires_in);
                 this.nextInterval = new Date();
@@ -246,7 +246,7 @@
                         return result;
                     })
                     .catch(function (result) {
-                        console.log(result);
+                        console.error(result);
                         Dashboard.alert("Some error occurred, see browser log for more details");
                         SimklConfig.stopLoginProcess();
                     });
@@ -265,7 +265,7 @@
                         return result;
                     })
                     .catch(function (result) {
-                        console.log(result);
+                        console.error(result);
                         Dashboard.alert("Some error occurred, see browser log for more details");
                         SimklConfig.stopLoginProcess();
                     });
@@ -284,7 +284,7 @@
                         return result;
                     })
                     .catch(function (result) {
-                        console.log(result);
+                        console.error(result);
                         Dashboard.alert("Something went wrong, see logs for more details");
                     });
             }
