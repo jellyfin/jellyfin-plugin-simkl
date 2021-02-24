@@ -1,21 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.1</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <NoWarn>CA1707;CA1819;SA1300</NoWarn>
+        <nullable>enable</nullable>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Jellyfin.Controller" Version="10.6-*" />
+        <PackageReference Include="Jellyfin.Controller" Version="10.7-*" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="5.*" />
     </ItemGroup>
 
     <!-- Code Analyzers-->
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3" PrivateAssets="All" />
         <PackageReference Include="SerilogAnalyzer" Version="0.15.0" PrivateAssets="All" />
         <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" />
         <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
@@ -28,5 +29,9 @@
     <PropertyGroup>
         <CodeAnalysisRuleSet>../jellyfin.ruleset</CodeAnalysisRuleSet>
     </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
     
 </Project>

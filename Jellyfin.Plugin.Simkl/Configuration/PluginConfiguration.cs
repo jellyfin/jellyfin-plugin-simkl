@@ -27,7 +27,7 @@ namespace Jellyfin.Plugin.Simkl.Configuration
         /// </summary>
         /// <param name="id">The user id.</param>
         /// <returns>Stored user config.</returns>
-        public UserConfig GetByGuid(Guid id)
+        public UserConfig? GetByGuid(Guid id)
         {
             return UserConfigs.FirstOrDefault(c => c.Id == id);
         }
@@ -46,7 +46,7 @@ namespace Jellyfin.Plugin.Simkl.Configuration
                 }
             }
 
-            SimklPlugin.Instance.SaveConfiguration();
+            SimklPlugin.Instance?.SaveConfiguration();
         }
     }
 }

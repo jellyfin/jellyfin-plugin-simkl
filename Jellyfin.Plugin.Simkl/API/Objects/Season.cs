@@ -1,4 +1,8 @@
-﻿namespace Jellyfin.Plugin.Simkl.API.Objects
+﻿using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+
+namespace Jellyfin.Plugin.Simkl.API.Objects
 {
     /// <summary>
     /// Season.
@@ -8,11 +12,13 @@
         /// <summary>
         /// Gets or sets the season number.
         /// </summary>
-        public int? number { get; set; }
+        [JsonPropertyName("number")]
+        public int? Number { get; set; }
 
         /// <summary>
         /// Gets or sets the episodes.
         /// </summary>
-        public ShowEpisode[] episodes { get; set; }
+        [JsonPropertyName("episodes")]
+        public IReadOnlyList<ShowEpisode> Episodes { get; set; } = Array.Empty<ShowEpisode>();
     }
 }

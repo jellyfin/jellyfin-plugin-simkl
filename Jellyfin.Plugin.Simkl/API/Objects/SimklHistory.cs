@@ -1,6 +1,7 @@
 ﻿#pragma warning disable CA2227
 
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
 {
@@ -14,24 +15,27 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// </summary>
         public SimklHistory()
         {
-            movies = new List<SimklMovie>();
-            shows = new List<SimklShow>();
-            episodes = new List<SimklEpisode>();
+            Movies = new List<SimklMovie>();
+            Shows = new List<SimklShow>();
+            Episodes = new List<SimklEpisode>();
         }
 
         /// <summary>
         /// Gets or sets list of movies.
         /// </summary>
-        public List<SimklMovie> movies { get; set; }
+        [JsonPropertyName("movies")]
+        public List<SimklMovie> Movies { get; set; }
 
         /// <summary>
         /// Gets or sets the list of shows.
         /// </summary>
-        public List<SimklShow> shows { get; set; }
+        [JsonPropertyName("shows")]
+        public List<SimklShow> Shows { get; set; }
 
         /// <summary>
         /// Gets or sets the list of episodes.
         /// </summary>
-        public List<SimklEpisode> episodes { get; set; }
+        [JsonPropertyName("episodes")]
+        public List<SimklEpisode> Episodes { get; set; }
     }
 }

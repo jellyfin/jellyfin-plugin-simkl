@@ -1,4 +1,6 @@
-﻿namespace Jellyfin.Plugin.Simkl.API.Objects
+﻿using System.Text.Json.Serialization;
+
+namespace Jellyfin.Plugin.Simkl.API.Objects
 {
     /// <summary>
     /// Show episode.
@@ -8,7 +10,8 @@
         /// <summary>
         /// Gets or sets episode number.
         /// </summary>
-        public int? number { get; set; }
+        [JsonPropertyName("number")]
+        public int? Number { get; set; }
         // TODO: watched_at
     }
 }

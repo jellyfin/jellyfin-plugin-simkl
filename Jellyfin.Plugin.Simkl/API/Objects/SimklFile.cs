@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Jellyfin.Plugin.Simkl.API.Objects
 {
     /// <summary>
@@ -8,16 +10,19 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Gets or sets the file.
         /// </summary>
-        public string file { get; set; }
+        [JsonPropertyName("file")]
+        public string? File { get; set; }
 
         /// <summary>
         /// Gets or sets the part.
         /// </summary>
-        public int? part { get; set; }
+        [JsonPropertyName("part")]
+        public int? Part { get; set; }
 
         /// <summary>
         /// Gets or sets the hash.
         /// </summary>
-        public string hash { get; set; }
+        [JsonPropertyName("hash")]
+        public string? Hash { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
 {
@@ -19,31 +20,37 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Gets or sets the tvdb id.
         /// </summary>
-        public int? tvdb { get; set; }
+        [JsonPropertyName("tvdb")]
+        public int? Tvdb { get; set; }
 
         /// <summary>
         /// Gets or sets the mal id.
         /// </summary>
-        public int? mal { get; set; }
+        [JsonPropertyName("mal")]
+        public int? Mal { get; set; }
 
         /// <summary>
         /// Gets or sets the anidb id.
         /// </summary>
-        public int? anidb { get; set; }
+        [JsonPropertyName("anidb")]
+        public int? Anidb { get; set; }
 
         /// <summary>
         /// Gets or sets the hulu id.
         /// </summary>
-        public int? hulu { get; set; }
+        [JsonPropertyName("hulu")]
+        public int? Hulu { get; set; }
 
         /// <summary>
         /// Gets or sets the crunchyroll id.
         /// </summary>
-        public int? crunchyroll { get; set; }
+        [JsonPropertyName("crunchyroll")]
+        public int? Crunchyroll { get; set; }
 
         /// <summary>
         /// Gets or sets the movie db id.
         /// </summary>
-        public string moviedb { get; set; }
+        [JsonPropertyName("moviedb")]
+        public string? Moviedb { get; set; }
     }
 }

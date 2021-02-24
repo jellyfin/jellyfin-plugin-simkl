@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Globalization;
+using System.Text.Json.Serialization;
 using MediaBrowser.Model.Dto;
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
@@ -15,28 +15,28 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <param name="item">The base item dto.</param>
         public SimklMovie(BaseItemDto item)
         {
-            title = item.OriginalTitle;
-            year = item.ProductionYear;
-            ids = new SimklMovieIds(item.ProviderIds);
-            watched_at = DateTime.UtcNow.ToString("yyyy-MM-dd HH\\:mm\\:ss", CultureInfo.InvariantCulture);
+            Title = item.OriginalTitle;
+            Year = item.ProductionYear;
+            Ids = new SimklMovieIds(item.ProviderIds);
+            WatchedAt = DateTime.UtcNow;
         }
 
         /// <summary>
         /// Gets or sets the movie title.
         /// </summary>
-        public string title { get; set; }
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
 
         /// <summary>
         /// Gets or sets the year.
         /// </summary>
-        public int? year { get; set; }
-
-        /// <inheritdoc />
-        public override SimklIds ids { get; set; }
+        [JsonPropertyName("year")]
+        public int? Year { get; set; }
 
         /// <summary>
-        /// Gets watched at.
+        /// Gets or sets watched at.
         /// </summary>
-        public string watched_at { get; }
+        [JsonPropertyName("watched_at")]
+        public DateTime? WatchedAt { get; set; }
     }
 }

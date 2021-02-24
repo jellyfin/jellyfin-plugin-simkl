@@ -11,12 +11,12 @@ namespace Jellyfin.Plugin.Simkl.API.Responses
         /// <summary>
         /// Gets or sets added.
         /// </summary>
-        public SyncHistoryResponseCount Added { get; set; }
+        public SyncHistoryResponseCount Added { get; set; } = new SyncHistoryResponseCount();
 
         /// <summary>
         /// Gets or sets not found.
         /// </summary>
         [JsonPropertyName("not_found")]
-        public SyncHistoryNotFound not_found { get; set; }
+        public SyncHistoryNotFound? NotFound { get; set; }
     }
 }

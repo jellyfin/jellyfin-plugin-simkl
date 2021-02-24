@@ -1,4 +1,6 @@
-﻿using MediaBrowser.Model.Dto;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using MediaBrowser.Model.Dto;
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
 {
@@ -13,19 +15,19 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <param name="mediaInfo">The media info.</param>
         public SimklShow(BaseItemDto mediaInfo)
         {
-            title = mediaInfo.SeriesName;
-            ids = new SimklShowIds(mediaInfo.ProviderIds);
-            year = mediaInfo.ProductionYear;
-            seasons = new[]
+            Title = mediaInfo.SeriesName;
+            Ids = new SimklShowIds(mediaInfo.ProviderIds);
+            Year = mediaInfo.ProductionYear;
+            Seasons = new[]
             {
                 new Season
                 {
-                    number = mediaInfo.ParentIndexNumber,
-                    episodes = new[]
+                    Number = mediaInfo.ParentIndexNumber,
+                    Episodes = new[]
                     {
                         new ShowEpisode
                         {
-                            number = mediaInfo.IndexNumber
+                            Number = mediaInfo.IndexNumber
                         }
                     }
                 }
@@ -35,21 +37,19 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Gets or sets title.
         /// </summary>
-        public string title { get; set; }
+        [JsonPropertyName("title")]
+        public string Title { get; set; }
 
         /// <summary>
         /// Gets or sets year.
         /// </summary>
-        public int? year { get; set; }
+        [JsonPropertyName("year")]
+        public int? Year { get; set; }
 
         /// <summary>
         /// Gets or sets seasons.
         /// </summary>
-        public Season[] seasons { get; set; }
-
-        /// <summary>
-        /// Gets or sets ids.
-        /// </summary>
-        public override SimklIds ids { get; set; }
+        [JsonPropertyName("seasons")]
+        public IReadOnlyList<Season> Seasons { get; set; }
     }
 }

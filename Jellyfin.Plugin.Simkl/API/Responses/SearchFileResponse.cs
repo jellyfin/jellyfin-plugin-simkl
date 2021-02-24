@@ -10,21 +10,21 @@ namespace Jellyfin.Plugin.Simkl.API.Responses
         /// <summary>
         /// Gets or sets type.
         /// </summary>
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         /// <summary>
         /// Gets or sets episode.
         /// </summary>
-        public SimklEpisode Episode { get; set; }
+        public SimklEpisode? Episode { get; set; }
 
         /// <summary>
         /// Gets or sets movie.
         /// </summary>
-        public SimklMovie Movie { get; set; }
+        public SimklMovie? Movie { get; set; }
 
         /// <summary>
         /// Gets or sets show.
         /// </summary>
-        public SimklShow Show { get; set; }
+        public SimklShow? Show { get; set; }
     }
 }

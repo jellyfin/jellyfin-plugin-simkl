@@ -1,12 +1,21 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Net.Mime;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Simkl.API.Exceptions;
 using Jellyfin.Plugin.Simkl.API.Objects;
 using Jellyfin.Plugin.Simkl.API.Responses;
+using MediaBrowser.Common.Json;
 using MediaBrowser.Common.Net;
+using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Dto;
-using MediaBrowser.Model.Serialization;
-using Microsoft.Extensions.Logging; // using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Simkl.API
 {
@@ -16,9 +25,9 @@ namespace Jellyfin.Plugin.Simkl.API
     public class SimklApi
     {
         /* INTERFACES */
-        private readonly IJsonSerializer _json;
         private readonly ILogger<SimklApi> _logger;
-        private readonly IHttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly JsonSerializerOptions _jsonSerializerOptions;
 
         /* BASIC API THINGS */
 
@@ -26,44 +35,43 @@ namespace Jellyfin.Plugin.Simkl.API
         /// Base url.
         /// </summary>
         public const string Baseurl = @"https://api.simkl.com";
-        // public const string BASE_URL = @"http://private-9c39b-simkl.apiary-proxy.com";
 
         /// <summary>
         /// Redirect uri.
         /// </summary>
-        public const string RedirectUri = @"https://simkl.com/apps/emby/connected/";
+        /// public const string RedirectUri = @"https://simkl.com/apps/jellyfin/connected/";
+        public const string RedirectUri = @"https://jellyfin.org";
 
         /// <summary>
         /// Api key.
         /// </summary>
-        public const string Apikey = @"27dd5d6adc24aa1ad9f95ef913244cbaf6df5696036af577ed41670473dc97d0";
+        public const string Apikey = @"c721b22482097722a84a20ccc579cf9d232be85b9befe7b7805484d0ddbc6781";
 
         /// <summary>
         /// Secret.
         /// </summary>
-        public const string Secret = @"d7b9feb9d48bbaa69dbabaca21ba4671acaa89198637e9e136a4d69ec97ab68b";
+        public const string Secret = @"87893fc73cdbd2e51a7c63975c6f941ac1c6155c0e20ffa76b83202dd10a507e";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklApi"/> class.
         /// </summary>
-        /// <param name="json">Instance of the <see cref="IJsonSerializer"/> interface.</param>
         /// <param name="logger">Instance of the <see cref="ILogger{SimklApi}"/> interface.</param>
-        /// <param name="httpClient">Instance of the <see cref="IHttpClient"/> interface.</param>
-        public SimklApi(IJsonSerializer json, ILogger<SimklApi> logger, IHttpClient httpClient)
+        /// <param name="httpClientFactory">Instance of the <see cref="IHttpClientFactory"/> interface.</param>
+        public SimklApi(ILogger<SimklApi> logger, IHttpClientFactory httpClientFactory)
         {
-            _json = json;
             _logger = logger;
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
+            _jsonSerializerOptions = JsonDefaults.GetOptions();
         }
 
         /// <summary>
         /// Get code.
         /// </summary>
         /// <returns>Code response.</returns>
-        public async Task<CodeResponse> GetCode()
+        public async Task<CodeResponse?> GetCode()
         {
             var uri = $"/oauth/pin?client_id={Apikey}&redirect={RedirectUri}";
-            return _json.DeserializeFromStream<CodeResponse>(await Get(uri).ConfigureAwait(false));
+            return await Get<CodeResponse>(uri);
         }
 
         /// <summary>
@@ -71,10 +79,10 @@ namespace Jellyfin.Plugin.Simkl.API
         /// </summary>
         /// <param name="userCode">User code.</param>
         /// <returns>Code status.</returns>
-        public async Task<CodeStatusResponse> GetCodeStatus(string userCode)
+        public async Task<CodeStatusResponse?> GetCodeStatus(string userCode)
         {
             var uri = $"/oauth/pin/{userCode}?client_id={Apikey}";
-            return _json.DeserializeFromStream<CodeStatusResponse>(await Get(uri).ConfigureAwait(false));
+            return await Get<CodeStatusResponse>(uri);
         }
 
         /// <summary>
@@ -82,18 +90,18 @@ namespace Jellyfin.Plugin.Simkl.API
         /// </summary>
         /// <param name="userToken">User token.</param>
         /// <returns>User settings.</returns>
-        public async Task<UserSettings> GetUserSettings(string userToken)
+        public async Task<UserSettings?> GetUserSettings(string userToken)
         {
             try
             {
-                return _json.DeserializeFromStream<UserSettings>(await Post("/users/settings/", userToken).ConfigureAwait(false));
+                return await Post<UserSettings, object>("/users/settings/", userToken);
             }
-            catch (MediaBrowser.Model.Net.HttpException e) when (e.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
                 // Wontfix: Custom status codes
                 // "You don't get to pick your response code" - Luke (System Architect of Emby)
                 // https://emby.media/community/index.php?/topic/61889-wiki-issue-resultfactorythrowerror/
-                return new UserSettings { error = "user_token_failed" };
+                return new UserSettings { Error = "user_token_failed" };
             }
         }
 
@@ -103,12 +111,12 @@ namespace Jellyfin.Plugin.Simkl.API
         /// <param name="item">Item.</param>
         /// <param name="userToken">User token.</param>
         /// <returns>Status.</returns>
-        public async Task<(bool success, BaseItemDto item)> MarkAsWatched(BaseItemDto item, string userToken)
+        public async Task<(bool Success, BaseItemDto Item)> MarkAsWatched(BaseItemDto item, string userToken)
         {
             var history = CreateHistoryFromItem(item);
-            var r = await SyncHistoryAsync(history, userToken).ConfigureAwait(false);
-            _logger.LogDebug("Response: " + _json.SerializeToString(r));
-            if (history.movies.Count == r.Added.Movies && history.shows.Count == r.Added.Shows)
+            var r = await SyncHistoryAsync(history, userToken);
+            _logger.LogDebug("Response: {@Response}", r);
+            if (r != null && history.Movies.Count == r.Added.Movies && history.Shows.Count == r.Added.Shows)
             {
                 return (true, item);
             }
@@ -117,19 +125,19 @@ namespace Jellyfin.Plugin.Simkl.API
             // let's try scrobbling from full path
             try
             {
-                (history, item) = await GetHistoryFromFileName(item).ConfigureAwait(false);
+                (history, item) = await GetHistoryFromFileName(item);
             }
             catch (InvalidDataException)
             {
                 // Let's try again but this time using only the FILE name
                 _logger.LogDebug("Couldn't scrobble using full path, trying using only filename");
-                (history, item) = await GetHistoryFromFileName(item, false).ConfigureAwait(false);
+                (history, item) = await GetHistoryFromFileName(item, false);
             }
 
-            r = await SyncHistoryAsync(history, userToken).ConfigureAwait(false);
-            _logger.LogDebug("Response: " + _json.SerializeToString(r));
-
-            return (history.movies.Count == r.Added.Movies && history.shows.Count == r.Added.Shows, item);
+            r = await SyncHistoryAsync(history, userToken);
+            return r == null
+                ? (false, item)
+                : (history.Movies.Count == r.Added.Movies && history.Shows.Count == r.Added.Shows, item);
         }
 
         /// <summary>
@@ -137,14 +145,11 @@ namespace Jellyfin.Plugin.Simkl.API
         /// </summary>
         /// <param name="filename">Filename.</param>
         /// <returns>Search file response.</returns>
-        private async Task<SearchFileResponse> GetFromFile(string filename)
+        private async Task<SearchFileResponse?> GetFromFile(string filename)
         {
-            var f = new SimklFile { file = filename };
-            _logger.LogInformation("Posting: " + _json.SerializeToString(f));
-            using var r = new StreamReader(await Post("/search/file/", null, f).ConfigureAwait(false));
-            var t = await r.ReadToEndAsync().ConfigureAwait(false);
-            _logger.LogDebug("Response: " + t);
-            return _json.DeserializeFromString<SearchFileResponse>(t);
+            var f = new SimklFile { File = filename };
+            _logger.LogInformation("Posting: {@File}", f);
+            return await Post<SearchFileResponse, SimklFile>("/search/file/", null, f);
         }
 
         /// <summary>
@@ -156,68 +161,69 @@ namespace Jellyfin.Plugin.Simkl.API
         private async Task<(SimklHistory history, BaseItemDto item)> GetHistoryFromFileName(BaseItemDto item, bool fullpath = true)
         {
             var fname = fullpath ? item.Path : Path.GetFileName(item.Path);
-            var mo = await GetFromFile(fname).ConfigureAwait(false);
+            var mo = await GetFromFile(fname);
+            if (mo == null)
+            {
+                throw new InvalidDataException("Search file response is null");
+            }
 
             var history = new SimklHistory();
-            if (item.IsMovie == true || item.Type == "Movie")
+            if (mo.Movie != null &&
+                (item.IsMovie == true || string.Equals(item.Type, nameof(Movie), StringComparison.OrdinalIgnoreCase)))
             {
-                if (mo.Type != "movie")
+                if (!string.Equals(mo.Type, "movie", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidDataException("type != movie (" + mo.Type + ")");
                 }
 
-                item.Name = mo.Movie.title;
-                item.ProductionYear = mo.Movie.year;
-                history.movies.Add(mo.Movie);
+                item.Name = mo.Movie.Title;
+                item.ProductionYear = mo.Movie.Year;
+                history.Movies.Add(mo.Movie);
             }
-            else if (item.IsSeries == true || item.Type == "Episode")
+            else if (mo.Episode != null
+                     && mo.Show != null
+                     && (item.IsSeries == true || string.Equals(item.Type, nameof(Episode), StringComparison.OrdinalIgnoreCase)))
             {
-                if (mo.Type != "episode")
+                if (!string.Equals(mo.Type, "episode", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidDataException("type != episode (" + mo.Type + ")");
                 }
 
-                item.Name = mo.Episode.title;
-                item.SeriesName = mo.Show.title;
-                item.IndexNumber = mo.Episode.episode;
-                item.ParentIndexNumber = mo.Episode.season;
-                item.ProductionYear = mo.Show.year;
-                history.episodes.Add(mo.Episode);
+                item.Name = mo.Episode.Title;
+                item.SeriesName = mo.Show.Title;
+                item.IndexNumber = mo.Episode.Episode;
+                item.ParentIndexNumber = mo.Episode.Season;
+                item.ProductionYear = mo.Show.Year;
+                history.Episodes.Add(mo.Episode);
             }
 
             return (history, item);
         }
 
-        private static HttpRequestOptions GetOptions(string userToken = null)
+        private static HttpRequestMessage GetOptions(string? userToken = null)
         {
-            var options = new HttpRequestOptions
-            {
-                RequestContentType = "application/json",
-                LogErrorResponseBody = true,
-                EnableDefaultUserAgent = true
-            };
-            options.RequestHeaders.Add("simkl-api-key", Apikey);
-            // options.RequestHeaders.Add("Content-Type", "application/json");
+            var requestMessage = new HttpRequestMessage();
+            requestMessage.Headers.TryAddWithoutValidation("simkl-api-key", Apikey);
             if (!string.IsNullOrEmpty(userToken))
             {
-                options.RequestHeaders.Add("Authorization", "Bearer " + userToken);
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
             }
 
-            return options;
+            return requestMessage;
         }
 
         private static SimklHistory CreateHistoryFromItem(BaseItemDto item)
         {
             var history = new SimklHistory();
 
-            if (item.IsMovie == true || item.Type == "Movie")
+            if (item.IsMovie == true || string.Equals(item.Type, nameof(Movie), StringComparison.OrdinalIgnoreCase))
             {
-                history.movies.Add(new SimklMovie(item));
+                history.Movies.Add(new SimklMovie(item));
             }
-            else if (item.IsSeries == true || item.Type == "Episode")
+            else if (item.IsSeries == true || string.Equals(item.Type, nameof(Episode), StringComparison.OrdinalIgnoreCase))
             {
                 // TODO: TV Shows scrobbling (WIP)
-                history.shows.Add(new SimklShow(item));
+                history.Shows.Add(new SimklShow(item));
             }
 
             return history;
@@ -229,17 +235,17 @@ namespace Jellyfin.Plugin.Simkl.API
         /// <param name="history">History object.</param>
         /// <param name="userToken">User token.</param>
         /// <returns>The sync history response.</returns>
-        private async Task<SyncHistoryResponse> SyncHistoryAsync(SimklHistory history, string userToken)
+        private async Task<SyncHistoryResponse?> SyncHistoryAsync(SimklHistory history, string userToken)
         {
             try
             {
-                _logger.LogInformation("Syncing History: " + _json.SerializeToString(history));
-                return _json.DeserializeFromStream<SyncHistoryResponse>(await Post("/sync/history", userToken, history).ConfigureAwait(false));
+                _logger.LogInformation("Syncing History");
+                return await Post<SyncHistoryResponse, SimklHistory>("/sync/history", userToken, history);
             }
-            catch (MediaBrowser.Model.Net.HttpException e) when (e.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                _logger.LogError("Invalid user token " + userToken + ", deleting");
-                SimklPlugin.Instance.Configuration.DeleteUserToken(userToken);
+                _logger.LogError(e, "Invalid user token {UserToken}, deleting", userToken);
+                SimklPlugin.Instance?.Configuration.DeleteUserToken(userToken);
                 throw new InvalidTokenException("Invalid user token " + userToken);
             }
         }
@@ -250,13 +256,15 @@ namespace Jellyfin.Plugin.Simkl.API
         /// <param name="url">Relative url.</param>
         /// <param name="userToken">Authentication token.</param>
         /// <returns>HTTP(s) Stream to be used.</returns>
-        private async Task<Stream> Get(string url, string userToken = null)
+        private async Task<T?> Get<T>(string url, string? userToken = null)
         {
             // Todo: If string is not null neither empty
-            var options = GetOptions(userToken);
-            options.Url = Baseurl + url;
-
-            return await _httpClient.Get(options).ConfigureAwait(false);
+            using var options = GetOptions(userToken);
+            options.RequestUri = new Uri(Baseurl + url);
+            options.Method = HttpMethod.Get;
+            var responseMessage = await _httpClientFactory.CreateClient(NamedClient.Default)
+                .SendAsync(options);
+            return await responseMessage.Content.ReadFromJsonAsync<T>(_jsonSerializerOptions);
         }
 
         /// <summary>
@@ -265,16 +273,23 @@ namespace Jellyfin.Plugin.Simkl.API
         /// <param name="url">Relative post url.</param>
         /// <param name="userToken">Authentication token.</param>
         /// <param name="data">Object to serialize.</param>
-        private async Task<Stream> Post(string url, string userToken = null, object data = null)
+        private async Task<T1?> Post<T1, T2>(string url, string? userToken = null, T2? data = null)
+         where T2 : class
         {
-            var options = GetOptions(userToken);
-            options.Url = Baseurl + url;
+            using var options = GetOptions(userToken);
+            options.RequestUri = new Uri(Baseurl + url);
+            options.Method = HttpMethod.Post;
             if (data != null)
             {
-                options.RequestContent = _json.SerializeToString(data);
+                options.Content = new StringContent(
+                    JsonSerializer.Serialize(data, _jsonSerializerOptions),
+                    Encoding.UTF8,
+                    MediaTypeNames.Application.Json);
             }
 
-            return (await _httpClient.Post(options).ConfigureAwait(false)).Content;
+            var responseMessage = await _httpClientFactory.CreateClient(NamedClient.Default)
+                .SendAsync(options);
+            return await responseMessage.Content.ReadFromJsonAsync<T1>(_jsonSerializerOptions);
         }
     }
 }

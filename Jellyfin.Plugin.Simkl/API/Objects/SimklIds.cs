@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
 {
@@ -17,52 +18,57 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         {
             foreach (var (key, value) in providerIds)
             {
-                if (key.Equals(nameof(simkl), StringComparison.OrdinalIgnoreCase))
+                if (key.Equals(nameof(Simkl), StringComparison.OrdinalIgnoreCase))
                 {
-                    simkl = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                    Simkl = Convert.ToInt32(value, CultureInfo.InvariantCulture);
                 }
-                else if (key.Equals(nameof(imdb), StringComparison.OrdinalIgnoreCase))
+                else if (key.Equals(nameof(Imdb), StringComparison.OrdinalIgnoreCase))
                 {
-                    imdb = value;
+                    Imdb = value;
                 }
-                else if (key.Equals(nameof(slug), StringComparison.OrdinalIgnoreCase))
+                else if (key.Equals(nameof(Slug), StringComparison.OrdinalIgnoreCase))
                 {
-                    slug = value;
+                    Slug = value;
                 }
-                else if (key.Equals(nameof(netflix), StringComparison.OrdinalIgnoreCase))
+                else if (key.Equals(nameof(Netflix), StringComparison.OrdinalIgnoreCase))
                 {
-                    netflix = value;
+                    Netflix = value;
                 }
-                else if (key.Equals(nameof(tmdb), StringComparison.OrdinalIgnoreCase))
+                else if (key.Equals(nameof(Tmdb), StringComparison.OrdinalIgnoreCase))
                 {
-                    tmdb = value;
+                    Tmdb = value;
                 }
             }
         }
 
         /// <summary>
-        /// Gets or sets simkl.
+        /// Gets or sets the simkl id.
         /// </summary>
-        public int? simkl { get; set; }
+        [JsonPropertyName("simkl")]
+        public int? Simkl { get; set; }
 
         /// <summary>
         /// Gets or sets the imdb id.
         /// </summary>
-        public string imdb { get; set; }
+        [JsonPropertyName("imdb")]
+        public string? Imdb { get; set; }
 
         /// <summary>
         /// Gets or sets the slug.
         /// </summary>
-        public string slug { get; set; }
+        [JsonPropertyName("slug")]
+        public string? Slug { get; set; }
 
         /// <summary>
         /// Gets or sets the netflix id.
         /// </summary>
-        public string netflix { get; set; }
+        [JsonPropertyName("netflix")]
+        public string? Netflix { get; set; }
 
         /// <summary>
         /// Gets or sets the TMDb id.
         /// </summary>
-        public string tmdb { get; set; }
+        [JsonPropertyName("tmdb")]
+        public string? Tmdb { get; set; }
     }
 }

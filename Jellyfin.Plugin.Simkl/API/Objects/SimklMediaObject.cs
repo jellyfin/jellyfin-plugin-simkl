@@ -1,13 +1,16 @@
-﻿namespace Jellyfin.Plugin.Simkl.API.Objects
+﻿using System.Text.Json.Serialization;
+
+namespace Jellyfin.Plugin.Simkl.API.Objects
 {
     /// <summary>
     /// Simkl media object.
     /// </summary>
-    public abstract class SimklMediaObject
+    public class SimklMediaObject
     {
         /// <summary>
         /// Gets or sets ids.
         /// </summary>
-        public abstract SimklIds ids { get; set; }
+        [JsonPropertyName("ids")]
+        public SimklIds? Ids { get; set; }
     }
 }

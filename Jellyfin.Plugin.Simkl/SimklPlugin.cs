@@ -27,13 +27,13 @@ namespace Jellyfin.Plugin.Simkl
         /// <summary>
         /// Gets the current instance of the plugin.
         /// </summary>
-        public static SimklPlugin Instance { get; private set; }
+        public static SimklPlugin? Instance { get; private set; }
 
         /// <inheritdoc />
         public override Guid Id => new Guid("07CAEF58-A94B-4211-A62C-F9774E04EBDB");
 
         /// <inheritdoc />
-        public override string Name => "Simkl TV Tracker";
+        public override string Name => "Simkl";
 
         /// <inheritdoc />
         public override string Description => "Scrobble your watched Movies, TV Shows and Anime to Simkl and share your progress with friends!";
