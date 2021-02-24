@@ -39,8 +39,7 @@ namespace Jellyfin.Plugin.Simkl.API
         /// <summary>
         /// Redirect uri.
         /// </summary>
-        /// public const string RedirectUri = @"https://simkl.com/apps/jellyfin/connected/";
-        public const string RedirectUri = @"https://jellyfin.org";
+        public const string RedirectUri = @"https://simkl.com/apps/jellyfin/connected/";
 
         /// <summary>
         /// Api key.
