@@ -2,15 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Simkl.API;
 using Jellyfin.Plugin.Simkl.API.Exceptions;
 using Jellyfin.Plugin.Simkl.Configuration;
-using MediaBrowser.Controller.Entities.Movies;
-using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Controller.Session;
-using MediaBrowser.Model.Dto;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Simkl.Services
@@ -96,8 +94,8 @@ namespace Jellyfin.Plugin.Simkl.Services
 
             return playbackProgress.MediaInfo.Type switch
             {
-                nameof(Movie) => config.ScrobbleMovies,
-                nameof(Episode) => config.ScrobbleShows,
+                BaseItemKind.Movie => config.ScrobbleMovies,
+                BaseItemKind.Episode => config.ScrobbleShows,
                 _ => false
             };
         }

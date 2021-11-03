@@ -7,13 +7,12 @@ using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Jellyfin.Data.Enums;
+using Jellyfin.Extensions.Json;
 using Jellyfin.Plugin.Simkl.API.Exceptions;
 using Jellyfin.Plugin.Simkl.API.Objects;
 using Jellyfin.Plugin.Simkl.API.Responses;
-using MediaBrowser.Common.Json;
 using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Entities.Movies;
-using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Dto;
 using Microsoft.Extensions.Logging;
 
@@ -60,7 +59,7 @@ namespace Jellyfin.Plugin.Simkl.API
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
-            _jsonSerializerOptions = JsonDefaults.GetOptions();
+            _jsonSerializerOptions = JsonDefaults.Options;
         }
 
         /// <summary>
@@ -168,7 +167,7 @@ namespace Jellyfin.Plugin.Simkl.API
 
             var history = new SimklHistory();
             if (mo.Movie != null &&
-                (item.IsMovie == true || string.Equals(item.Type, nameof(Movie), StringComparison.OrdinalIgnoreCase)))
+                (item.IsMovie == true || item.Type == BaseItemKind.Movie))
             {
                 if (!string.Equals(mo.Type, "movie", StringComparison.OrdinalIgnoreCase))
                 {
@@ -181,7 +180,7 @@ namespace Jellyfin.Plugin.Simkl.API
             }
             else if (mo.Episode != null
                      && mo.Show != null
-                     && (item.IsSeries == true || string.Equals(item.Type, nameof(Episode), StringComparison.OrdinalIgnoreCase)))
+                     && (item.IsSeries == true || item.Type == BaseItemKind.Episode))
             {
                 if (!string.Equals(mo.Type, "episode", StringComparison.OrdinalIgnoreCase))
                 {
@@ -215,11 +214,11 @@ namespace Jellyfin.Plugin.Simkl.API
         {
             var history = new SimklHistory();
 
-            if (item.IsMovie == true || string.Equals(item.Type, nameof(Movie), StringComparison.OrdinalIgnoreCase))
+            if (item.IsMovie == true || item.Type == BaseItemKind.Movie)
             {
                 history.Movies.Add(new SimklMovie(item));
             }
-            else if (item.IsSeries == true || string.Equals(item.Type, nameof(Episode), StringComparison.OrdinalIgnoreCase))
+            else if (item.IsSeries == true || item.Type == BaseItemKind.Episode)
             {
                 // TODO: TV Shows scrobbling (WIP)
                 history.Shows.Add(new SimklShow(item));
