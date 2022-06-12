@@ -169,9 +169,9 @@
                 if (new Date() > this.finish) {
                     Dashboard.alert("Timed out!");
                     await this.stopLoginProcess();
-                } else if (response.Result === "KO") {
+                } else if (response.result === "KO") {
                     this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this, code), code.Interval * 1000);
-                } else if (response.Result === "OK") {
+                } else if (response.result === "OK") {
                     await this.stopLoginProcess();
 
                     // Save key on settings
@@ -190,7 +190,7 @@
 
                     console.log(this.configCache);
 
-                    ApiClient.updatePluginConfiguration(this.guid, this.configCache);
+                    await ApiClient.updatePluginConfiguration(this.guid, this.configCache);
                     await this.loadConfig(uguid);
                 } else {
                     Dashboard.alert("Error logging in");

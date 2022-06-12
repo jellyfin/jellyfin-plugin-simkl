@@ -11,11 +11,13 @@ namespace Jellyfin.Plugin.Simkl.API.Responses
         /// <summary>
         /// Gets or sets result.
         /// </summary>
+        [JsonPropertyName("result")]
         public string? Result { get; set; }
 
         /// <summary>
         /// Gets or sets message.
         /// </summary>
+        [JsonPropertyName("message")]
         public string? Message { get; set; }
 
         /// <summary>
