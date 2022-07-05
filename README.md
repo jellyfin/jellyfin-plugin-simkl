@@ -2,8 +2,6 @@
 <h3 align="center">Part of the <a href="https://jellyfin.org/">Jellyfin Project</a></h3>
 
 ###
-Repository Url:
-https://repo.codyrobibero.dev/manifest.json
 
 ## Current features
 - Multi-user support
