@@ -22,9 +22,17 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
                 {
                     Simkl = Convert.ToInt32(value, CultureInfo.InvariantCulture);
                 }
+                else if (key.Equals(nameof(Anidb), StringComparison.OrdinalIgnoreCase))
+                {
+                    Anidb = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                }
                 else if (key.Equals(nameof(Imdb), StringComparison.OrdinalIgnoreCase))
                 {
                     Imdb = value;
+                }
+                else if (key.Equals(nameof(Tvdb), StringComparison.OrdinalIgnoreCase))
+                {
+                    Tvdb = value;
                 }
                 else if (key.Equals(nameof(Slug), StringComparison.OrdinalIgnoreCase))
                 {
@@ -70,5 +78,17 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// </summary>
         [JsonPropertyName("tmdb")]
         public string? Tmdb { get; set; }
+
+        /// <summary>
+        /// Gets or sets the TVDB id.
+        /// </summary>
+        [JsonPropertyName("tvdb")]
+        public string? Tvdb { get; set; }
+
+        /// <summary>
+        /// Gets or sets the AniDB id.
+        /// </summary>
+        [JsonPropertyName("anidb")]
+        public int? Anidb { get; set; }
     }
 }

@@ -18,22 +18,10 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         }
 
         /// <summary>
-        /// Gets or sets tvdb.
-        /// </summary>
-        [JsonPropertyName("tvdb")]
-        public int? Tvdb { get; set; }
-
-        /// <summary>
         /// Gets or sets mal.
         /// </summary>
         [JsonPropertyName("mal")]
         public int? Mal { get; set; }
-
-        /// <summary>
-        /// Gets or sets anidb.
-        /// </summary>
-        [JsonPropertyName("anidb")]
-        public int? Anidb { get; set; }
 
         /// <summary>
         /// Gets or sets hulu.
