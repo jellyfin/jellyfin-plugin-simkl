@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Tracing;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -27,6 +28,7 @@ namespace Jellyfin.Plugin.Simkl.API
         private readonly ILogger<SimklApi> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly JsonSerializerOptions _jsonSerializerOptions;
+        private readonly JsonSerializerOptions _caseInsensitiveJsonSerializerOptions;
 
         /* BASIC API THINGS */
 
@@ -60,6 +62,10 @@ namespace Jellyfin.Plugin.Simkl.API
             _logger = logger;
             _httpClientFactory = httpClientFactory;
             _jsonSerializerOptions = JsonDefaults.Options;
+            _caseInsensitiveJsonSerializerOptions = new JsonSerializerOptions(_jsonSerializerOptions)
+            {
+                PropertyNameCaseInsensitive = true
+            };
         }
 
         /// <summary>
@@ -113,8 +119,12 @@ namespace Jellyfin.Plugin.Simkl.API
         {
             var history = CreateHistoryFromItem(item);
             var r = await SyncHistoryAsync(history, userToken);
+            _logger.LogDebug("BaseItem: {@Item}", item);
+            _logger.LogDebug("History: {@History}", history);
             _logger.LogDebug("Response: {@Response}", r);
-            if (r != null && history.Movies.Count == r.Added.Movies && history.Shows.Count == r.Added.Shows)
+            if (r != null && history.Movies.Count == r.Added.Movies
+                && history.Shows.Count == r.Added.Shows
+                && history.Episodes.Count == r.Added.Episodes)
             {
                 return (true, item);
             }
@@ -218,10 +228,15 @@ namespace Jellyfin.Plugin.Simkl.API
             {
                 history.Movies.Add(new SimklMovie(item));
             }
-            else if (item.IsSeries == true || item.Type == BaseItemKind.Episode)
+            else if (item.IsSeries == true || (item.Type == BaseItemKind.Series))
             {
+                // Jellyfin sends episode id instead of show id
                 // TODO: TV Shows scrobbling (WIP)
                 history.Shows.Add(new SimklShow(item));
+            }
+            else if (item.Type == BaseItemKind.Episode)
+            {
+                history.Episodes.Add(new SimklEpisode(item));
             }
 
             return history;
@@ -277,6 +292,7 @@ namespace Jellyfin.Plugin.Simkl.API
             using var options = GetOptions(userToken);
             options.RequestUri = new Uri(Baseurl + url);
             options.Method = HttpMethod.Post;
+
             if (data != null)
             {
                 options.Content = new StringContent(
@@ -287,7 +303,8 @@ namespace Jellyfin.Plugin.Simkl.API
 
             var responseMessage = await _httpClientFactory.CreateClient(NamedClient.Default)
                 .SendAsync(options);
-            return await responseMessage.Content.ReadFromJsonAsync<T1>(_jsonSerializerOptions);
+
+            return await responseMessage.Content.ReadFromJsonAsync<T1>(_caseInsensitiveJsonSerializerOptions);
         }
     }
 }
