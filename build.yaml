@@ -1,8 +1,8 @@
 ---
 name: "Simkl"
 guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB"
-version: 3
-targetAbi: "10.8.1.0"
+version: 4
+targetAbi: "10.8.11.0"
 owner: "crobibero"
 overview: "Scrobble to Simkl"
 description: >
@@ -13,8 +13,8 @@ framework: "net6.0"
 artifacts:
   - "Jellyfin.Plugin.Simkl.dll"
 changelog: |2-
-  ### Bug Fixes ###
-  - Fix auth against Simkl api (#17) @crobibero
+  ### New features and improvements ###
+  - fixed json case + added episode ids + empty response error (#25) @ekleop
 
-  ### CI & build changes ###
-  - fix: meta ci workflows (#15) @h1dden-da3m0n
+  ### Bug Fixes ###
+  - fixed json case + added episode ids + empty response error (#25) @ekleop
