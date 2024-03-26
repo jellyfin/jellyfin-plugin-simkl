@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Simkl.API;
@@ -9,6 +10,7 @@ using Jellyfin.Plugin.Simkl.Configuration;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Controller.Session;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Simkl.Services
@@ -16,7 +18,7 @@ namespace Jellyfin.Plugin.Simkl.Services
     /// <summary>
     /// Playback progress scrobbler.
     /// </summary>
-    public class PlaybackScrobbler : IServerEntryPoint
+    public class PlaybackScrobbler : IHostedService
     {
         private readonly ISessionManager _sessionManager; // Needed to set up de startPlayBack and endPlayBack functions
         private readonly ILogger<PlaybackScrobbler> _logger;
@@ -40,34 +42,6 @@ namespace Jellyfin.Plugin.Simkl.Services
             _simklApi = simklApi;
             _lastScrobbled = new Dictionary<string, Guid>();
             _nextTry = DateTime.UtcNow;
-        }
-
-        /// <inheritdoc />
-        public Task RunAsync()
-        {
-            _sessionManager.PlaybackProgress += OnPlaybackProgress;
-            _sessionManager.PlaybackStopped += OnPlaybackStopped;
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// Dispose.
-        /// </summary>
-        /// <param name="disposing">Dispose all resources.</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _sessionManager.PlaybackProgress -= OnPlaybackProgress;
-                _sessionManager.PlaybackStopped -= OnPlaybackStopped;
-            }
         }
 
         private static bool CanBeScrobbled(UserConfig config, PlaybackProgressEventArgs playbackProgress)
@@ -171,6 +145,22 @@ namespace Jellyfin.Plugin.Simkl.Services
             {
                 _logger.LogError(ex, "Caught unknown exception while trying to scrobble");
             }
+        }
+
+        /// <inheritdoc />
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            _sessionManager.PlaybackProgress += OnPlaybackProgress;
+            _sessionManager.PlaybackStopped += OnPlaybackStopped;
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc />
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            _sessionManager.PlaybackProgress -= OnPlaybackProgress;
+            _sessionManager.PlaybackStopped -= OnPlaybackStopped;
+            return Task.CompletedTask;
         }
     }
 }

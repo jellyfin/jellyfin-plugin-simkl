@@ -1,5 +1,6 @@
-﻿using Jellyfin.Plugin.Simkl.API;
-using MediaBrowser.Common.Plugins;
+﻿using Jellyfin.Plugin.Simkl.Services;
+using MediaBrowser.Controller;
+using MediaBrowser.Controller.Plugins;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Jellyfin.Plugin.Simkl
@@ -8,9 +9,9 @@ namespace Jellyfin.Plugin.Simkl
     public class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         /// <inheritdoc />
-        public void RegisterServices(IServiceCollection serviceCollection)
+        public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
         {
-            serviceCollection.AddScoped<SimklApi>();
+            serviceCollection.AddHostedService<PlaybackScrobbler>();
         }
     }
 }

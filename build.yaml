@@ -2,19 +2,14 @@
 name: "Simkl"
 guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB"
 version: 4
-targetAbi: "10.8.11.0"
+targetAbi: "10.9.0.0"
 owner: "crobibero"
 overview: "Scrobble to Simkl"
 description: >
   Scrobble your watched Movies, TV Shows and Anime to Simkl and share your progress with friends!
 
 category: "General"
-framework: "net6.0"
+framework: "net8.0"
 artifacts:
   - "Jellyfin.Plugin.Simkl.dll"
 changelog: |2-
-  ### New features and improvements ###
-  - fixed json case + added episode ids + empty response error (#25) @ekleop
-
-  ### Bug Fixes ###
-  - fixed json case + added episode ids + empty response error (#25) @ekleop
