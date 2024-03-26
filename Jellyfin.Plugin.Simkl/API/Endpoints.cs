@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.Simkl.API
     /// The simkl endpoints.
     /// </summary>
     [ApiController]
-    [Authorize(Policy = "DefaultAuthorization")]
+    [Authorize]
     [Route("Simkl")]
     public class Endpoints : ControllerBase
     {
