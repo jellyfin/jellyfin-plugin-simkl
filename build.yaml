@@ -1,7 +1,7 @@
 ---
 name: "Simkl"
 guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB"
-version: 4
+version: 5
 targetAbi: "10.9.0.0"
 owner: "crobibero"
 overview: "Scrobble to Simkl"
@@ -12,4 +12,5 @@ category: "General"
 framework: "net8.0"
 artifacts:
   - "Jellyfin.Plugin.Simkl.dll"
-changelog: |2-
+changelog: |-
+  - 10.9 (#32) @crobibero
