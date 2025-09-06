@@ -1,5 +1,7 @@
 using System;
 using System.Text.Json.Serialization;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Dto;
 #pragma warning disable SA1300
 
@@ -13,6 +15,14 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklEpisode"/> class.
         /// </summary>
+        public SimklEpisode()
+        {
+            // Parameterless constructor required for deserialization.
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklEpisode"/> class.
+        /// </summary>
         /// <param name="media">Episode Data.</param>
         public SimklEpisode(BaseItemDto media)
         {
@@ -21,6 +31,22 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
             Year = media?.ProductionYear;
             Season = media?.ParentIndexNumber;
             Episode = media?.IndexNumber;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklEpisode"/> class.
+        /// </summary>
+        /// <param name="media">Episode Data from the library.</param>
+        public SimklEpisode(BaseItem media)
+        {
+            if (media is Episode episode)
+            {
+                Title = episode.Series?.Name;
+                Ids = new SimklIds(episode.ProviderIds);
+                Year = episode.ProductionYear;
+                Season = episode.ParentIndexNumber;
+                Episode = episode.IndexNumber;
+            }
         }
 
         /// <summary>

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.Tracing;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -13,8 +12,12 @@ using Jellyfin.Extensions.Json;
 using Jellyfin.Plugin.Simkl.API.Exceptions;
 using Jellyfin.Plugin.Simkl.API.Objects;
 using Jellyfin.Plugin.Simkl.API.Responses;
+using Jellyfin.Plugin.Simkl.Configuration;
 using MediaBrowser.Common.Net;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Dto;
+using MediaBrowser.Model.Querying;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Simkl.API
@@ -24,31 +27,28 @@ namespace Jellyfin.Plugin.Simkl.API
     /// </summary>
     public class SimklApi
     {
-        /* INTERFACES */
         private readonly ILogger<SimklApi> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly JsonSerializerOptions _jsonSerializerOptions;
         private readonly JsonSerializerOptions _caseInsensitiveJsonSerializerOptions;
 
-        /* BASIC API THINGS */
-
         /// <summary>
-        /// Base url.
+        /// Base url for the Simkl API.
         /// </summary>
         public const string Baseurl = @"https://api.simkl.com";
 
         /// <summary>
-        /// Redirect uri.
+        /// Redirect uri for OAuth.
         /// </summary>
         public const string RedirectUri = @"https://simkl.com/apps/jellyfin/connected/";
 
         /// <summary>
-        /// Api key.
+        /// Api key for the Simkl application.
         /// </summary>
         public const string Apikey = @"c721b22482097722a84a20ccc579cf9d232be85b9befe7b7805484d0ddbc6781";
 
         /// <summary>
-        /// Secret.
+        /// Secret for the Simkl application.
         /// </summary>
         public const string Secret = @"87893fc73cdbd2e51a7c63975c6f941ac1c6155c0e20ffa76b83202dd10a507e";
 
@@ -69,9 +69,9 @@ namespace Jellyfin.Plugin.Simkl.API
         }
 
         /// <summary>
-        /// Get code.
+        /// Get code for device authentication.
         /// </summary>
-        /// <returns>Code response.</returns>
+        /// <returns>A <see cref="Task"/> containing the code response.</returns>
         public async Task<CodeResponse?> GetCode()
         {
             var uri = $"/oauth/pin?client_id={Apikey}&redirect={RedirectUri}";
@@ -79,10 +79,10 @@ namespace Jellyfin.Plugin.Simkl.API
         }
 
         /// <summary>
-        /// Get code status.
+        /// Get status of a device authentication code.
         /// </summary>
         /// <param name="userCode">User code.</param>
-        /// <returns>Code status.</returns>
+        /// <returns>A <see cref="Task"/> containing the code status.</returns>
         public async Task<CodeStatusResponse?> GetCodeStatus(string userCode)
         {
             var uri = $"/oauth/pin/{userCode}?client_id={Apikey}";
@@ -90,10 +90,10 @@ namespace Jellyfin.Plugin.Simkl.API
         }
 
         /// <summary>
-        /// Get user settings.
+        /// Get user settings from Simkl.
         /// </summary>
         /// <param name="userToken">User token.</param>
-        /// <returns>User settings.</returns>
+        /// <returns>A <see cref="Task"/> containing the user settings.</returns>
         public async Task<UserSettings?> GetUserSettings(string userToken)
         {
             try
@@ -102,19 +102,16 @@ namespace Jellyfin.Plugin.Simkl.API
             }
             catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                // Wontfix: Custom status codes
-                // "You don't get to pick your response code" - Luke (System Architect of Emby)
-                // https://emby.media/community/index.php?/topic/61889-wiki-issue-resultfactorythrowerror/
                 return new UserSettings { Error = "user_token_failed" };
             }
         }
 
         /// <summary>
-        /// Mark as watched.
+        /// Mark an item as watched on Simkl.
         /// </summary>
-        /// <param name="item">Item.</param>
-        /// <param name="userToken">User token.</param>
-        /// <returns>Status.</returns>
+        /// <param name="item">The item to mark as watched.</param>
+        /// <param name="userToken">The user's authentication token.</param>
+        /// <returns>A <see cref="Task"/> containing a tuple indicating success and the item.</returns>
         public async Task<(bool Success, BaseItemDto Item)> MarkAsWatched(BaseItemDto item, string userToken)
         {
             var history = CreateHistoryFromItem(item);
@@ -129,15 +126,12 @@ namespace Jellyfin.Plugin.Simkl.API
                 return (true, item);
             }
 
-            // If we are here, is because the item has not been found
-            // let's try scrobbling from full path
             try
             {
                 (history, item) = await GetHistoryFromFileName(item);
             }
             catch (InvalidDataException)
             {
-                // Let's try again but this time using only the FILE name
                 _logger.LogDebug("Couldn't scrobble using full path, trying using only filename");
                 (history, item) = await GetHistoryFromFileName(item, false);
             }
@@ -149,10 +143,74 @@ namespace Jellyfin.Plugin.Simkl.API
         }
 
         /// <summary>
-        /// Get from file.
+        /// Syncs the full library for a user.
         /// </summary>
-        /// <param name="filename">Filename.</param>
-        /// <returns>Search file response.</returns>
+        /// <param name="config">The user's plugin configuration.</param>
+        /// <param name="libraryManager">The library manager.</param>
+        /// <param name="userManager">The user manager.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public async Task SyncLibrary(UserConfig config, ILibraryManager libraryManager, IUserManager userManager)
+        {
+            _logger.LogInformation("Starting full library sync for user {UserId}", config.Id);
+
+            var user = userManager.GetUserById(config.Id);
+            if (user == null)
+            {
+                _logger.LogError("Could not find user for full sync: {UserId}", config.Id);
+                return;
+            }
+
+            var history = new SimklHistory();
+
+            var movies = libraryManager.GetItemList(new InternalItemsQuery(user)
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Movie },
+                IsPlayed = true,
+                Recursive = true
+            });
+
+            foreach (var movie in movies)
+            {
+                history.Movies.Add(new SimklMovie(movie));
+            }
+
+            _logger.LogInformation("Found {MovieCount} watched movies to sync for user {UserId}", history.Movies.Count, config.Id);
+
+            var episodes = libraryManager.GetItemList(new InternalItemsQuery(user)
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Episode },
+                IsPlayed = true,
+                Recursive = true
+            });
+
+            foreach (var episode in episodes)
+            {
+                history.Episodes.Add(new SimklEpisode(episode));
+            }
+
+            _logger.LogInformation("Found {EpisodeCount} watched episodes to sync for user {UserId}", history.Episodes.Count, config.Id);
+
+            if (history.Movies.Count > 0 || history.Episodes.Count > 0)
+            {
+                try
+                {
+                    var response = await SyncHistoryAsync(history, config.UserToken);
+                    if (response != null)
+                    {
+                        _logger.LogInformation("Full sync response: {AddedMovies} movies, {AddedEpisodes} episodes added.", response.Added.Movies, response.Added.Episodes);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during full library sync for user {UserId}", config.Id);
+                }
+            }
+            else
+            {
+                _logger.LogInformation("No watched items found to sync for user {UserId}", config.Id);
+            }
+        }
+
         private async Task<SearchFileResponse?> GetFromFile(string filename)
         {
             var f = new SimklFile { File = filename };
@@ -160,12 +218,6 @@ namespace Jellyfin.Plugin.Simkl.API
             return await Post<SearchFileResponse, SimklFile>("/search/file/", null, f);
         }
 
-        /// <summary>
-        /// Get history from file name.
-        /// </summary>
-        /// <param name="item">Item.</param>
-        /// <param name="fullpath">Full path.</param>
-        /// <returns>Srobble history.</returns>
         private async Task<(SimklHistory history, BaseItemDto item)> GetHistoryFromFileName(BaseItemDto item, bool fullpath = true)
         {
             var fname = fullpath ? item.Path : Path.GetFileName(item.Path);
@@ -176,8 +228,7 @@ namespace Jellyfin.Plugin.Simkl.API
             }
 
             var history = new SimklHistory();
-            if (mo.Movie != null &&
-                (item.IsMovie == true || item.Type == BaseItemKind.Movie))
+            if (mo.Movie != null && item.Type == BaseItemKind.Movie)
             {
                 if (!string.Equals(mo.Type, "movie", StringComparison.OrdinalIgnoreCase))
                 {
@@ -188,9 +239,7 @@ namespace Jellyfin.Plugin.Simkl.API
                 item.ProductionYear = mo.Movie.Year;
                 history.Movies.Add(mo.Movie);
             }
-            else if (mo.Episode != null
-                     && mo.Show != null
-                     && (item.IsSeries == true || item.Type == BaseItemKind.Episode))
+            else if (mo.Episode != null && mo.Show != null && item.Type == BaseItemKind.Episode)
             {
                 if (!string.Equals(mo.Type, "episode", StringComparison.OrdinalIgnoreCase))
                 {
@@ -224,14 +273,12 @@ namespace Jellyfin.Plugin.Simkl.API
         {
             var history = new SimklHistory();
 
-            if (item.IsMovie == true || item.Type == BaseItemKind.Movie)
+            if (item.Type == BaseItemKind.Movie)
             {
                 history.Movies.Add(new SimklMovie(item));
             }
-            else if (item.IsSeries == true || (item.Type == BaseItemKind.Series))
+            else if (item.Type == BaseItemKind.Series)
             {
-                // Jellyfin sends episode id instead of show id
-                // TODO: TV Shows scrobbling (WIP)
                 history.Shows.Add(new SimklShow(item));
             }
             else if (item.Type == BaseItemKind.Episode)
@@ -242,12 +289,6 @@ namespace Jellyfin.Plugin.Simkl.API
             return history;
         }
 
-        /// <summary>
-        /// Implements /sync/history method from simkl.
-        /// </summary>
-        /// <param name="history">History object.</param>
-        /// <param name="userToken">User token.</param>
-        /// <returns>The sync history response.</returns>
         private async Task<SyncHistoryResponse?> SyncHistoryAsync(SimklHistory history, string userToken)
         {
             try
@@ -263,15 +304,8 @@ namespace Jellyfin.Plugin.Simkl.API
             }
         }
 
-        /// <summary>
-        /// API's private get method, given RELATIVE url and headers.
-        /// </summary>
-        /// <param name="url">Relative url.</param>
-        /// <param name="userToken">Authentication token.</param>
-        /// <returns>HTTP(s) Stream to be used.</returns>
         private async Task<T?> Get<T>(string url, string? userToken = null)
         {
-            // Todo: If string is not null neither empty
             using var options = GetOptions(userToken);
             options.RequestUri = new Uri(Baseurl + url);
             options.Method = HttpMethod.Get;
@@ -280,12 +314,6 @@ namespace Jellyfin.Plugin.Simkl.API
             return await responseMessage.Content.ReadFromJsonAsync<T>(_jsonSerializerOptions);
         }
 
-        /// <summary>
-        /// API's private post method.
-        /// </summary>
-        /// <param name="url">Relative post url.</param>
-        /// <param name="userToken">Authentication token.</param>
-        /// <param name="data">Object to serialize.</param>
         private async Task<T1?> Post<T1, T2>(string url, string? userToken = null, T2? data = null)
          where T2 : class
         {
