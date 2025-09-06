@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MediaBrowser.Model.Dto;
 
@@ -9,6 +10,17 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
     /// </summary>
     public class SimklShow : SimklMediaObject
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklShow"/> class.
+        /// </summary>
+        public SimklShow()
+        {
+            // Parameterless constructor required for deserialization.
+            // Initialize non-nullable properties to default values.
+            Title = string.Empty;
+            Seasons = Array.Empty<Season>();
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklShow"/> class.
         /// </summary>

@@ -98,7 +98,7 @@ namespace Jellyfin.Plugin.Simkl.Services
                 var userConfig = SimklPlugin.Instance?.Configuration.GetByGuid(userId);
                 if (userConfig == null || string.IsNullOrEmpty(userConfig.UserToken))
                 {
-                    _logger.LogError(
+                    _logger.LogInformation(
                         "Can't scrobble: User {UserName} not logged in ({UserConfigStatus})",
                         eventArgs.Session.UserName,
                         userConfig == null);

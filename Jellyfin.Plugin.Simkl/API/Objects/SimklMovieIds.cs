@@ -11,6 +11,17 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklMovieIds"/> class.
         /// </summary>
+        /// <remarks>
+        /// Parameterless constructor required for deserialization.
+        /// </remarks>
+        public SimklMovieIds()
+            : base()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklMovieIds"/> class.
+        /// </summary>
         /// <param name="providerMovieIds">the provider movie ids.</param>
         public SimklMovieIds(Dictionary<string, string> providerMovieIds)
             : base(providerMovieIds)

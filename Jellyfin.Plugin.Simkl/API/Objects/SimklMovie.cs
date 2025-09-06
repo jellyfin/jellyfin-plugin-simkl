@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.Json.Serialization;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Model.Dto;
 
 namespace Jellyfin.Plugin.Simkl.API.Objects
@@ -12,8 +13,28 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklMovie"/> class.
         /// </summary>
+        public SimklMovie()
+        {
+            // Parameterless constructor required for deserialization.
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklMovie"/> class.
+        /// </summary>
         /// <param name="item">The base item dto.</param>
         public SimklMovie(BaseItemDto item)
+        {
+            Title = item.OriginalTitle;
+            Year = item.ProductionYear;
+            Ids = new SimklMovieIds(item.ProviderIds);
+            WatchedAt = DateTime.UtcNow;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklMovie"/> class.
+        /// </summary>
+        /// <param name="item">The base item from the library.</param>
+        public SimklMovie(BaseItem item)
         {
             Title = item.OriginalTitle;
             Year = item.ProductionYear;

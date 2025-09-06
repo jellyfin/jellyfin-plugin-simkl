@@ -13,6 +13,16 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklIds"/> class.
         /// </summary>
+        /// <remarks>
+        /// Parameterless constructor required for deserialization.
+        /// </remarks>
+        public SimklIds()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklIds"/> class.
+        /// </summary>
         /// <param name="providerIds">The provider ids.</param>
         public SimklIds(Dictionary<string, string> providerIds)
         {

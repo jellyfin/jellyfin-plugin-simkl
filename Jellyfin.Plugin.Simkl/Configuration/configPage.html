@@ -13,8 +13,7 @@
                 <div id="selectContainer">
                     <select onchange="SimklConfig.onSelectorChange();" is="emby-select" id="user-selector"
                             label="Showing plugin settings for...">
-                        <!-- This will be populated by SimklConfig.populateUsers -->
-                    </select>
+                        </select>
                 </div>
                 <div id="loginButtonContainer" hidden>
                     <h3>It seems you are not logged in, do you wish to log in?</h3>
@@ -35,7 +34,14 @@
                     <h3>Hello again <span id="simklName">USERNAME</span>!</h3>
                     <button onclick="SimklConfig.logOut();" is="emby-button" type="button" class="raised button block">
                         <span>Log Out</span></button>
-                    <h2>Scrobbling options:</h2>
+
+                    <div id="syncContainer" style="margin-top: 2em;">
+                        <h2>Library Sync</h2>
+                        <p class="fieldDescription">Sync your entire watched history from your library to Simkl. This might take a while depending on the size of your library.</p>
+                        <button onclick="SimklConfig.startFullSync();" is="emby-button" type="button" class="raised button-submit block"><span>Start Full Sync</span></button>
+                        <div id="syncStatus" style="margin-top: 10px;"></div>
+                    </div>
+                    <h2 style="margin-top: 2em;">Scrobbling options:</h2>
                     <div class="checkboxcontainer">
                         <label>
                             <input is="emby-checkbox" type="checkbox" id="ScrobbleMovies"/>
@@ -228,7 +234,33 @@
                 console.log(this.configCache);
                 window.ApiClient.updatePluginConfiguration(this.guid, this.configCache);
                 this.loadConfig(uguid);
+            },
+            // Start: Added function for full library sync
+            startFullSync: function () {
+                const uguid = SimklConfig.userSelector.value;
+                const statusDiv = document.querySelector('#syncStatus');
+                statusDiv.innerText = "Sync initiated...";
+
+                const request = {
+                    url: window.ApiClient.getUrl('Simkl/sync/full/' + uguid),
+                    type: 'POST'
+                };
+
+                window.ApiClient.fetch(request)
+                    .then(function (result) {
+                        if (result.status === 200 || result.status === 204) { // 204 is also a success status
+                            statusDiv.innerText = "Sync started successfully. Processing will continue in the background.";
+                        } else {
+                            statusDiv.innerText = "Error starting the sync process.";
+                            console.error("Sync failed to start", result);
+                        }
+                    })
+                    .catch(function (error) {
+                        statusDiv.innerText = "An error occurred. See browser log for details.";
+                        console.error(error);
+                    });
             }
+            // End: Added function for full library sync
         }
 
         var SimklAPI = {
