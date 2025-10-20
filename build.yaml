@@ -1,7 +1,7 @@
 ---
 name: "Simkl"
 guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB"
-version: 6
+version: 7
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "crobibero"
@@ -13,4 +13,5 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.Simkl.dll"
 changelog: |-
-  - Fix 10.9 support (#34) @crobibero
+  - Jellyfin 10.11 support (#47) @crobibero
+  - Change Error Logging (#37) @JamsRepos
