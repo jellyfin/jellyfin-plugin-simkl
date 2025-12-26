@@ -1,8 +1,8 @@
 ---
 name: "Simkl"
 guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB"
-version: 7
-targetAbi: "10.11.0.0"
+version: 8
+targetAbi: "10.11.5.0"
 framework: "net9.0"
 owner: "crobibero"
 overview: "Scrobble to Simkl"
@@ -13,5 +13,8 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.Simkl.dll"
 changelog: |-
-  - Jellyfin 10.11 support (#47) @crobibero
-  - Change Error Logging (#37) @JamsRepos
+  - Revert "Update dependency Microsoft.Extensions.Http to v10" (#54) @Shadowghost
+
+  ### Dependency updates ###
+  - Update dependency Microsoft.Extensions.Http to v10 (#52) @[renovate[bot]](https://github.com/apps/renovate)
+  - Update dependency Microsoft.Extensions.Http to 9.0.11 (#49) @[renovate[bot]](https://github.com/apps/renovate)
