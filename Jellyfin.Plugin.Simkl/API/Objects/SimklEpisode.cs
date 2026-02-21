@@ -13,6 +13,13 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklEpisode"/> class.
         /// </summary>
+        public SimklEpisode()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklEpisode"/> class.
+        /// </summary>
         /// <param name="media">Episode Data.</param>
         public SimklEpisode(BaseItemDto media)
         {
