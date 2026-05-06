@@ -154,7 +154,7 @@
                     SimklConfig.loginSecondsRemaining.innerText = Math.round((SimklConfig.finish.getTime() - (new Date().getTime())) / 1000);
                 }, 1000);
 
-                SimklConfig.loginText.innerHTML = 'Please visit <a href="' + code.verification_url + '/' + code.user_code + '" target="_blank">' + code.verification_url + '</a> on your phone or compouter and enter the following code:';
+                SimklConfig.loginText.innerHTML = 'Please visit <a href="' + code.verification_url + '/' + code.user_code + '" target="_blank">' + code.verification_url + '</a> on your phone or computer and enter the following code:';
 
                 SimklConfig.loginPin.innerText = code.user_code;
 
