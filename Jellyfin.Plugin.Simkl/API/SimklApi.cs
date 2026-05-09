@@ -122,9 +122,11 @@ namespace Jellyfin.Plugin.Simkl.API
             _logger.LogDebug("BaseItem: {@Item}", item);
             _logger.LogDebug("History: {@History}", history);
             _logger.LogDebug("Response: {@Response}", r);
-            if (r != null && history.Movies.Count == r.Added.Movies
-                && history.Shows.Count == r.Added.Shows
-                && history.Episodes.Count == r.Added.Episodes)
+            if (r != null
+                && r.NotFound != null
+                && r.NotFound.Movies.Length == 0
+                && r.NotFound.Shows.Length == 0
+                && r.NotFound.Episodes.Length == 0)
             {
                 return (true, item);
             }
@@ -143,9 +145,13 @@ namespace Jellyfin.Plugin.Simkl.API
             }
 
             r = await SyncHistoryAsync(history, userToken);
-            return r == null
-                ? (false, item)
-                : (history.Movies.Count == r.Added.Movies && history.Shows.Count == r.Added.Shows, item);
+            return r != null
+                && r.NotFound != null
+                && r.NotFound.Movies.Length == 0
+                && r.NotFound.Shows.Length == 0
+                && r.NotFound.Episodes.Length == 0
+                    ? (true, item)
+                    : (false, item);
         }
 
         /// <summary>
