@@ -45,6 +45,18 @@ namespace Jellyfin.Plugin.Simkl.API
         }
 
         /// <summary>
+        /// Determines whether an error code returned in a Simkl response body is worth retrying.
+        /// </summary>
+        /// <param name="error">Error code from the Simkl API.</param>
+        /// <returns><c>true</c> when the same request could succeed later; otherwise <c>false</c>.</returns>
+        public static bool IsTransient(string? error)
+        {
+            // Anything else (id_err, invalid_token, ...) means Simkl understood the request and
+            // refused it; repeating the identical request will not change the answer.
+            return string.Equals(error, "rate_limit", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
         /// Gets a formatted title string from a scrobble request for logging purposes.
         /// </summary>
         /// <param name="request">Scrobble request.</param>

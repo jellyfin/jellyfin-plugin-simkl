@@ -42,7 +42,21 @@ namespace Jellyfin.Plugin.Simkl
         /// <param name="now">The current timestamp (typically UTC).</param>
         public void MarkExecuted(TKey key, DateTime now)
         {
-            _nextAllowed[key] = now + _interval;
+            Defer(key, now + _interval);
+        }
+
+        /// <summary>
+        /// Blocks the specified key until at least the given time.
+        /// </summary>
+        /// <param name="key">The key representing the caller or context.</param>
+        /// <param name="until">The earliest time the key may execute again.</param>
+        /// <remarks>
+        /// Never shortens an existing deferral, so a long server-imposed cooldown (an HTTP 429
+        /// with a Retry-After) cannot be cleared by a routine <see cref="MarkExecuted"/>.
+        /// </remarks>
+        public void Defer(TKey key, DateTime until)
+        {
+            _nextAllowed.AddOrUpdate(key, until, (_, existing) => existing > until ? existing : until);
         }
 
         /// <summary>
