@@ -41,6 +41,7 @@ namespace Jellyfin.Plugin.Simkl
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()
         {
+            // Admin configuration page only
             yield return new PluginPageInfo
             {
                 Name = Name,

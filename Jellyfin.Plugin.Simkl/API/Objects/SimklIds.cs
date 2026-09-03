@@ -21,17 +21,36 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// Initializes a new instance of the <see cref="SimklIds"/> class.
         /// </summary>
         /// <param name="providerIds">The provider ids.</param>
-        public SimklIds(Dictionary<string, string> providerIds)
+        public SimklIds(IReadOnlyDictionary<string, string> providerIds)
         {
+            if (providerIds == null)
+            {
+                return;
+            }
+
             foreach (var (key, value) in providerIds)
             {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    continue;
+                }
+
                 if (key.Equals(nameof(Simkl), StringComparison.OrdinalIgnoreCase))
                 {
-                    Simkl = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                    // Provider ids are free-form strings. A non-numeric value used to throw a
+                    // FormatException out of Convert.ToInt32 and abort the whole scrobble, so
+                    // parsing is best effort.
+                    if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var simklId))
+                    {
+                        Simkl = simklId;
+                    }
                 }
                 else if (key.Equals(nameof(Anidb), StringComparison.OrdinalIgnoreCase))
                 {
-                    Anidb = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                    if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var anidbId))
+                    {
+                        Anidb = anidbId;
+                    }
                 }
                 else if (key.Equals(nameof(Imdb), StringComparison.OrdinalIgnoreCase))
                 {
@@ -97,5 +116,24 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// </summary>
         [JsonPropertyName("anidb")]
         public int? Anidb { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether at least one id was resolved.
+        /// </summary>
+        /// <returns><c>true</c> when any id is set; otherwise <c>false</c>.</returns>
+        /// <remarks>
+        /// An all-null ids object should be omitted from the request entirely so that Simkl falls
+        /// back to matching on title and year instead of on an empty id set.
+        /// </remarks>
+        public bool HasAnyId()
+        {
+            return Simkl.HasValue
+                   || Anidb.HasValue
+                   || !string.IsNullOrEmpty(Imdb)
+                   || !string.IsNullOrEmpty(Tvdb)
+                   || !string.IsNullOrEmpty(Tmdb)
+                   || !string.IsNullOrEmpty(Slug)
+                   || !string.IsNullOrEmpty(Netflix);
+        }
     }
 }
