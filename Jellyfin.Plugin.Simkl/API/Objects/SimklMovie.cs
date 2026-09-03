@@ -12,6 +12,13 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklMovie"/> class.
         /// </summary>
+        public SimklMovie()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklMovie"/> class.
+        /// </summary>
         /// <param name="item">The base item dto.</param>
         public SimklMovie(BaseItemDto item)
         {

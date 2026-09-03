@@ -12,6 +12,13 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// <summary>
         /// Initializes a new instance of the <see cref="SimklShow"/> class.
         /// </summary>
+        public SimklShow()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SimklShow"/> class.
+        /// </summary>
         /// <param name="mediaInfo">The media info.</param>
         public SimklShow(BaseItemDto mediaInfo)
         {
@@ -38,7 +45,7 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// Gets or sets title.
         /// </summary>
         [JsonPropertyName("title")]
-        public string Title { get; set; }
+        public string? Title { get; set; }
 
         /// <summary>
         /// Gets or sets year.
@@ -50,6 +57,6 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// Gets or sets seasons.
         /// </summary>
         [JsonPropertyName("seasons")]
-        public IReadOnlyList<Season> Seasons { get; set; }
+        public IReadOnlyList<Season>? Seasons { get; set; }
     }
 }
