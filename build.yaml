@@ -2,8 +2,8 @@
 name: "Simkl"
 guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB"
 version: 9
-targetAbi: "10.11.7.0"
-framework: "net9.0"
+targetAbi: "12.0.0.0"
+framework: "net10.0"
 owner: "crobibero"
 overview: "Scrobble to Simkl"
 description: >
