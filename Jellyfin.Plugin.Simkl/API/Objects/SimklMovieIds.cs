@@ -12,7 +12,7 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         /// Initializes a new instance of the <see cref="SimklMovieIds"/> class.
         /// </summary>
         /// <param name="providerMovieIds">the provider movie ids.</param>
-        public SimklMovieIds(Dictionary<string, string> providerMovieIds)
+        public SimklMovieIds(IReadOnlyDictionary<string, string> providerMovieIds)
             : base(providerMovieIds)
         {
         }

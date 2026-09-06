@@ -63,5 +63,51 @@ namespace Jellyfin.Plugin.Simkl.API
 
             return await _simklApi.GetUserSettings(userConfiguration.UserToken);
         }
+
+        /// <summary>
+        /// Sends a scrobble start (now watching) update for the given item.
+        /// </summary>
+        /// <param name="userId">The user id.</param>
+        /// <param name="item">The item being watched.</param>
+        /// <param name="progress">Playback progress as a percentage (0–100).</param>
+        /// <returns>The scrobble response.</returns>
+        [HttpPost("scrobble/start/{userId}")]
+        public async Task<ActionResult<SyncPlaybackResponse?>> ScrobbleStart(
+            [FromRoute] Guid userId,
+            [FromBody] MediaBrowser.Model.Dto.BaseItemDto item,
+            [FromQuery] float progress)
+        {
+            var userConfiguration = SimklPlugin.Instance?.Configuration.GetByGuid(userId);
+            if (userConfiguration == null || string.IsNullOrEmpty(userConfiguration.UserToken))
+            {
+                return Unauthorized();
+            }
+
+            return await _simklApi.ScrobbleStartAsync(item, userConfiguration.UserToken, progress);
+        }
+
+        /// <summary>
+        /// Deprecated. Use <see cref="ScrobbleStart"/> instead.
+        /// Posts to the legacy Simkl /sync/playback endpoint.
+        /// </summary>
+        /// <param name="userId">The user id.</param>
+        /// <param name="item">The item being watched.</param>
+        /// <returns>The sync playback response.</returns>
+        [HttpPost("sync/playback/{userId}")]
+        [Obsolete("Use POST /Simkl/scrobble/start/{userId}?progress=<float> instead.")]
+        public async Task<ActionResult<SyncPlaybackResponse?>> SyncPlayback(
+            [FromRoute] Guid userId,
+            [FromBody] MediaBrowser.Model.Dto.BaseItemDto item)
+        {
+            var userConfiguration = SimklPlugin.Instance?.Configuration.GetByGuid(userId);
+            if (userConfiguration == null || string.IsNullOrEmpty(userConfiguration.UserToken))
+            {
+                return Unauthorized();
+            }
+
+#pragma warning disable CS0618
+            return await _simklApi.SyncPlaybackAsync(item, userConfiguration.UserToken, 0);
+#pragma warning restore CS0618
+        }
     }
 }
