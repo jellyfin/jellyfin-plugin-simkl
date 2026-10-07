@@ -479,6 +479,7 @@ namespace Jellyfin.Plugin.Simkl.Services
         {
             var movies = string.Equals(bucket, "movies", StringComparison.Ordinal);
             var entries = movies ? response.Movies : string.Equals(bucket, "anime", StringComparison.Ordinal) ? response.Anime : response.Shows;
+            var movieMarks = new List<(BaseItem Item, DateTime? Own, DateTime? Fallback)>();
             foreach (var entry in entries ?? Array.Empty<AllItemsEntry>())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -495,12 +496,14 @@ namespace Jellyfin.Plugin.Simkl.Services
                 }
                 else if (string.Equals(entryStatus, "completed", StringComparison.Ordinal))
                 {
-                    ApplyMovie(job, index, entry);
+                    ApplyMovie(job, index, entry, movieMarks);
                 }
             }
+
+            job.MoviesMarked += MarkPlayed(job, movieMarks);
         }
 
-        private void ApplyMovie(Job job, LibraryIndex index, AllItemsEntry entry)
+        private void ApplyMovie(Job job, LibraryIndex index, AllItemsEntry entry, List<(BaseItem Item, DateTime? Own, DateTime? Fallback)> marks)
         {
             var ids = entry.Movie?.Ids ?? entry.Show?.Ids;   // anime movies carry their ids under show
             var item = ids == null ? null : index.FindMovie(ids);
@@ -511,10 +514,7 @@ namespace Jellyfin.Plugin.Simkl.Services
                 return;
             }
 
-            if (MarkPlayed(job, item, ParseDate(entry.LastWatchedAt), null))
-            {
-                job.MoviesMarked++;
-            }
+            marks.Add((item, ParseDate(entry.LastWatchedAt), null));
         }
 
         private void ApplyShow(Job job, LibraryIndex index, AllItemsEntry entry, bool anime, CancellationToken cancellationToken)
@@ -534,6 +534,7 @@ namespace Jellyfin.Plugin.Simkl.Services
             var synthesized = string.Equals(Normalize(entry.Status), "completed", StringComparison.Ordinal)
                 && seasons.Sum(s => (s.Episodes ?? Array.Empty<AllItemsEpisode>()).Count(ep => ParseDate(ep.WatchedAt) == fallbackDate)) > 1;
             var hits = 0;
+            var marks = new List<(BaseItem Item, DateTime? Own, DateTime? Fallback)>();
 
             foreach (var season in seasons)
             {
@@ -562,12 +563,11 @@ namespace Jellyfin.Plugin.Simkl.Services
                         own = null;
                     }
 
-                    if (MarkPlayed(job, item, own, fallbackDate))
-                    {
-                        job.EpisodesMarked++;
-                    }
+                    marks.Add((item, own, fallbackDate));
                 }
             }
+
+            job.EpisodesMarked += MarkPlayed(job, marks);
 
             if (series != null || hits > 0)
             {
@@ -629,7 +629,22 @@ namespace Jellyfin.Plugin.Simkl.Services
             return (1, episode.Number);
         }
 
-        private bool MarkPlayed(Job job, BaseItem item, DateTime? own, DateTime? fallback)
+        private int MarkPlayed(Job job, List<(BaseItem Item, DateTime? Own, DateTime? Fallback)> marks)
+        {
+            if (marks.Count == 0)
+            {
+                return 0;
+            }
+
+            // The index reads no user data: loaded with the items, it is every user's rows on every item. And
+            // GetUserData(user, item) reads only what the item carries, so on an item from the index it would answer
+            // a blank record for everything, which the save would then write over the real one. The batch read is the
+            // one that goes to the database for what the items do not carry, in one query for all of them.
+            var userData = _userDataManager.GetUserDataBatch(marks.Select(m => m.Item).DistinctBy(i => i.Id).ToList(), job.User);
+            return marks.Count(m => MarkPlayed(job, m.Item, userData, m.Own, m.Fallback));
+        }
+
+        private bool MarkPlayed(Job job, BaseItem item, IReadOnlyDictionary<Guid, UserItemData> userData, DateTime? own, DateTime? fallback)
         {
             if (!job.Seen.Add(item.Id))
             {
@@ -641,11 +656,7 @@ namespace Jellyfin.Plugin.Simkl.Services
                 return false;   // changed by hand, or played, since this run started
             }
 
-            // The index reads no user data: loaded with the items, it is every user's rows on every item. And
-            // GetUserData(user, item) reads only what the item carries, so on an item from the index it would answer
-            // a blank record for everything, which the save below would then write over the real one. The batch read
-            // is the one that goes to the database for what the item does not carry.
-            if (!_userDataManager.GetUserDataBatch(new[] { item }, job.User).TryGetValue(item.Id, out var data))
+            if (!userData.TryGetValue(item.Id, out var data))
             {
                 return false;   // no user data to write, so nothing to mark: the item went away mid run
             }
