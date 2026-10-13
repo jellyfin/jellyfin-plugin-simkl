@@ -162,6 +162,7 @@ namespace Jellyfin.Plugin.Simkl.Services
         /// <inheritdoc />
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            _sessionManager.PlaybackStart += OnPlaybackStart;
             _sessionManager.PlaybackProgress += OnPlaybackProgress;
             _sessionManager.PlaybackStopped += OnPlaybackStopped;
             return Task.CompletedTask;
@@ -170,6 +171,7 @@ namespace Jellyfin.Plugin.Simkl.Services
         /// <inheritdoc />
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            _sessionManager.PlaybackStart -= OnPlaybackStart;
             _sessionManager.PlaybackProgress -= OnPlaybackProgress;
             _sessionManager.PlaybackStopped -= OnPlaybackStopped;
             _sessions.Clear();
@@ -221,6 +223,11 @@ namespace Jellyfin.Plugin.Simkl.Services
         }
 
         // Sync wrappers - async void is avoided so that faults stay observable.
+        private void OnPlaybackStart(object? sender, PlaybackProgressEventArgs e)
+        {
+            Observe(HandleStartAsync(e), "playback start");
+        }
+
         private void OnPlaybackProgress(object? sender, PlaybackProgressEventArgs e)
         {
             Observe(HandleProgressAsync(e), "playback progress");
@@ -248,6 +255,45 @@ namespace Jellyfin.Plugin.Simkl.Services
             }
 
             return _sessions.GetOrAdd(session.Id, _ => new SessionScrobbleTracker(mediaInfo.Id, nowUtc));
+        }
+
+        /// <summary>
+        /// Starts a fresh scrobble state for a new playback on a session.
+        /// </summary>
+        /// <remarks>
+        /// A session id is reused across playbacks, and a tracker that reached
+        /// <see cref="SessionScrobbleState.Stopped"/> ignores every later event for the same item
+        /// until it goes stale. Playing the item again within <see cref="SessionStaleAfter"/> of
+        /// stopping it (restarting it, or reopening it to change a track) was therefore never
+        /// scrobbled, not even its final stop. An open scrobble of the same item is left alone, so
+        /// a client that reports a start again mid-playback causes no extra calls.
+        /// </remarks>
+        private async Task HandleStartAsync(PlaybackProgressEventArgs e)
+        {
+            var now = DateTime.UtcNow;
+            var tracker = GetTracker(e.Session, e.MediaInfo, now);
+            if (tracker == null)
+            {
+                return;
+            }
+
+            await tracker.Gate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                // A different item is rebound by the next progress event, as before.
+                var openScrobble = !tracker.Abandoned
+                                   && tracker.State is SessionScrobbleState.Started or SessionScrobbleState.Paused;
+                if (!openScrobble)
+                {
+                    tracker.ResetFor(e.MediaInfo!.Id);
+                }
+
+                tracker.LastEventUtc = now;
+            }
+            finally
+            {
+                tracker.Gate.Release();
+            }
         }
 
         private async Task HandleProgressAsync(PlaybackProgressEventArgs e)
@@ -414,6 +460,10 @@ namespace Jellyfin.Plugin.Simkl.Services
 
             if (tracker.State == SessionScrobbleState.Stopped)
             {
+                _logger.LogDebug(
+                    "Ignoring a stop for {Name} on session {SessionId}: the scrobble for this playback already ended",
+                    e.MediaInfo!.Name,
+                    e.Session.Id);
                 return;
             }
 
