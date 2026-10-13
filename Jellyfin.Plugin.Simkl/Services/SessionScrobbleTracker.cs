@@ -9,8 +9,9 @@ namespace Jellyfin.Plugin.Simkl.Services
     /// </summary>
     /// <remarks>
     /// A Jellyfin session id is stable per device/client and is reused across playbacks, so the
-    /// session id alone cannot tell one playback from the next. The tracked item id and the
-    /// last-seen timestamp are what make that distinction, which is why both live here.
+    /// session id alone cannot tell one playback from the next. Jellyfin's playback start event,
+    /// the tracked item id and the last-seen timestamp are what make that distinction; the item id
+    /// and the timestamp live here.
     /// </remarks>
     internal sealed class SessionScrobbleTracker
     {
