@@ -1,8 +1,8 @@
 ---
 name: "Simkl"
 guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB"
-version: 9
-targetAbi: "12.0.0.0"
+version: 10
+targetAbi: "12.2.0.0"
 framework: "net10.0"
 owner: "crobibero"
 overview: "Scrobble to Simkl"
@@ -13,9 +13,4 @@ category: "General"
 artifacts:
   - "Jellyfin.Plugin.Simkl.dll"
 changelog: |-
-  - Unstable: Update to latest Jellyfin preview packages (#64) @crobibero, @jellyfin-bot
-  - Fix: typo 'compouter' in login instructions (#65) @bretthysuik
-  - feat: live-scrobbling support (#61) @samip5, @claude, @crobibero
-
-  ### New features and improvements ###
-  - Add external url provider (#39) @crobibero
+  - Add the Simkl OAuth 2 device flow and two-way watched state sync (#73) @ekleop, @crobibero
