@@ -18,10 +18,11 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         }
 
         /// <summary>
-        /// Gets or sets mal.
+        /// Initializes a new instance of the <see cref="SimklShowIds"/> class with no ids.
         /// </summary>
-        [JsonPropertyName("mal")]
-        public int? Mal { get; set; }
+        public SimklShowIds()
+        {
+        }
 
         /// <summary>
         /// Gets or sets hulu.

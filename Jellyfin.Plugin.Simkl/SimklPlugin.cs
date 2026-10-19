@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Jellyfin.Plugin.Simkl.Configuration;
 using MediaBrowser.Common.Configuration;
@@ -47,6 +47,25 @@ namespace Jellyfin.Plugin.Simkl
                 Name = Name,
                 EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html"
             };
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// The dashboard posts the whole configuration, so a snapshot taken before the last login would log users
+        /// out. The stored token is carried over first. Import cursors are not involved: they live in their own file,
+        /// see <see cref="Services.ImportStateStore"/>.
+        /// </remarks>
+        public override void UpdateConfiguration(BasePluginConfiguration configuration)
+        {
+            if (configuration is PluginConfiguration incoming)
+            {
+                // carried over and installed under one lock, so a login or a logout landing mid save is not
+                // written to the configuration that is about to be replaced
+                PluginConfiguration.ReplaceRunning(() => Configuration, incoming, () => base.UpdateConfiguration(incoming));
+                return;
+            }
+
+            base.UpdateConfiguration(configuration);
         }
     }
 }

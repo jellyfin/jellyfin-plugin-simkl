@@ -72,6 +72,16 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
                 {
                     Tmdb = value;
                 }
+                else if (key.Equals("MyAnimeList", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Jellyfin names these two providers differently from Simkl, so they are matched by their
+                    // Jellyfin key rather than by the property name
+                    Mal = value;
+                }
+                else if (key.Equals("AniList", StringComparison.OrdinalIgnoreCase))
+                {
+                    Anilist = value;
+                }
             }
         }
 
@@ -118,6 +128,40 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
         public int? Anidb { get; set; }
 
         /// <summary>
+        /// Gets or sets the MyAnimeList id, which is how Simkl identifies most anime.
+        /// </summary>
+        [JsonPropertyName("mal")]
+        public string? Mal { get; set; }
+
+        /// <summary>
+        /// Gets or sets the AniList id.
+        /// </summary>
+        [JsonPropertyName("anilist")]
+        public string? Anilist { get; set; }
+
+        /// <summary>
+        /// Copies every id onto another ids object.
+        /// </summary>
+        /// <remarks>
+        /// What Simkl answers with is deserialized into this base type, so an id set it identified by file name has to
+        /// be carried over to the movie or show shape a scrobble request asks for.
+        /// </remarks>
+        /// <param name="target">The ids object to copy onto.</param>
+        public void CopyTo(SimklIds target)
+        {
+            ArgumentNullException.ThrowIfNull(target);
+            target.Simkl = Simkl;
+            target.Imdb = Imdb;
+            target.Slug = Slug;
+            target.Netflix = Netflix;
+            target.Tmdb = Tmdb;
+            target.Tvdb = Tvdb;
+            target.Anidb = Anidb;
+            target.Mal = Mal;
+            target.Anilist = Anilist;
+        }
+
+        /// <summary>
         /// Gets a value indicating whether at least one id was resolved.
         /// </summary>
         /// <returns><c>true</c> when any id is set; otherwise <c>false</c>.</returns>
@@ -133,7 +177,9 @@ namespace Jellyfin.Plugin.Simkl.API.Objects
                    || !string.IsNullOrEmpty(Tvdb)
                    || !string.IsNullOrEmpty(Tmdb)
                    || !string.IsNullOrEmpty(Slug)
-                   || !string.IsNullOrEmpty(Netflix);
+                   || !string.IsNullOrEmpty(Netflix)
+                   || !string.IsNullOrEmpty(Mal)
+                   || !string.IsNullOrEmpty(Anilist);
         }
     }
 }

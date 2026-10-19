@@ -1,26 +1,30 @@
-﻿using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Simkl.API.Objects;
 
 namespace Jellyfin.Plugin.Simkl.API.Responses
 {
     /// <summary>
-    /// sync history not found.
+    /// The entries of a history call Simkl could not identify, echoed back as they were sent.
     /// </summary>
     public class SyncHistoryNotFound
     {
         /// <summary>
-        /// Gets or sets movies.
+        /// Gets or sets the movies.
         /// </summary>
-        public SimklMovie[] Movies { get; set; } = Array.Empty<SimklMovie>();
+        [JsonPropertyName("movies")]
+        public IReadOnlyList<HistoryMovie>? Movies { get; set; }
 
         /// <summary>
-        /// Gets or sets shows.
+        /// Gets or sets the shows.
         /// </summary>
-        public SimklShow[] Shows { get; set; } = Array.Empty<SimklShow>();
+        [JsonPropertyName("shows")]
+        public IReadOnlyList<HistoryShow>? Shows { get; set; }
 
         /// <summary>
-        /// Gets or sets episodes.
+        /// Gets or sets the episodes.
         /// </summary>
-        public SimklEpisode[] Episodes { get; set; } = Array.Empty<SimklEpisode>();
+        [JsonPropertyName("episodes")]
+        public IReadOnlyList<HistoryEpisode>? Episodes { get; set; }
     }
 }

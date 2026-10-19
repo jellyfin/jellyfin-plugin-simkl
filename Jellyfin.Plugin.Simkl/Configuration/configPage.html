@@ -1,312 +1,1179 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
-    <title>Simkl's TV Tracker</title>
+    <title>Simkl</title>
 </head>
 <body>
 <div data-role="page" class="page type-interior pluginConfigurationPage" id="SimklConfigurationPage"
      data-require="emby-button,emby-checkbox,emby-input,emby-select">
     <div data-role="content">
         <div class="content-primary">
-            <h1>Simkl's TV Tracker</h1>
-            <form id="SimklConfigurationForm">
-                <div id="selectContainer">
-                    <select onchange="SimklConfig.onSelectorChange();" is="emby-select" id="user-selector"
-                            label="Showing plugin settings for...">
-                        <!-- This will be populated by SimklConfig.populateUsers -->
-                    </select>
+            <h1>Simkl</h1>
+            <!-- onsubmit is here as well as on the bound handler on purpose. A native submit of this form is a
+                 navigation to the current url, which makes the dashboard re-inject this page: the script runs again
+                 with no memory of which user was picked, and the dropdown springs back to whoever is signed in. The
+                 inline return false holds even if the script never bound its own handler. -->
+            <form id="SimklConfigurationForm" onsubmit="return false;">
+
+                <div class="selectContainer" id="userSelectContainer">
+                    <select is="emby-select" id="userSelector" label="Showing Simkl settings for"></select>
+                    <div class="fieldDescription">
+                        Every user connects their own Simkl account. Jellyfin gives a plugin one administrator page, so
+                        an administrator opens and edits each user's Simkl settings from here.
+                    </div>
                 </div>
-                <div id="loginButtonContainer" hidden>
-                    <h3>It seems you are not logged in, do you wish to log in?</h3>
-                    <button onclick="SimklConfig.startLoginProcess();" is="emby-button" type="button"
-                            class="raised button-submit block"><span>Log In</span></button>
-                    <button onclick="location.href='https://simkl.com/';" is="emby-button" type="button"
-                            class="raised block"><span>Create an account</span></button>
+
+                <div id="noUsers" class="hide" hidden>
+                    <h3>No users found on this server.</h3>
                 </div>
-                <div id="loggingIn" hidden>
-                    <h2>Logging In</h2>
+
+                <div id="loginButtonContainer" class="hide" hidden>
+                    <h3>This user is not connected to Simkl yet.</h3>
+                    <button is="emby-button" type="button" id="btnSimklLogin" class="raised button-submit block"><span>Log In</span></button>
+                    <button is="emby-button" type="button" id="btnSimklCreate" class="raised block"><span>Create an account</span></button>
+                </div>
+
+                <div id="loggingIn" class="hide" hidden>
+                    <h2>Logging in</h2>
                     <div id="loginText"></div>
-                    <h3 id="loginPin"></h3>
-                    <span id="loginSecondsRemaining">900</span> seconds remaining
-                    <button onclick="SimklConfig.stopLoginProcess();" is="emby-button" type="button"
-                            class="raised button-cancel block"><span>Cancel</span></button>
+                    <h3 id="loginPin" style="letter-spacing: .15em;"></h3>
+                    <div class="fieldDescription" id="loginShortcut"></div>
+                    <div><span id="loginSecondsRemaining">900</span> seconds remaining</div>
+                    <button is="emby-button" type="button" id="btnSimklCancel" class="raised button-cancel block"><span>Cancel</span></button>
                 </div>
-                <div id="configOptionsContainer" hidden>
-                    <h3>Hello again <span id="simklName">USERNAME</span>!</h3>
-                    <button onclick="SimklConfig.logOut();" is="emby-button" type="button" class="raised button block">
-                        <span>Log Out</span></button>
-                    <h2>Scrobbling options:</h2>
-                    <div class="checkboxcontainer">
-                        <label>
-                            <input is="emby-checkbox" type="checkbox" id="ScrobbleMovies"/>
-                            <span>Autoscrobbling Movies</span>
-                        </label>
-                    </div>
-                    <div class="checkboxcontainer">
-                        <label>
-                            <input is="emby-checkbox" type="checkbox" id="ScrobbleShows"/>
-                            <span>Autoscrobbling TV Shows</span>
-                        </label>
-                    </div>
-                    <div class="inputContainer">
-                        <input is="emby-input" id="ScrobblePercentage" type="number" min="0" max="100" pattern="[0-9]*"
-                               label="Scrobbling percentage:"/>
-                        <div class="fieldDescription">
-                            Percentage watched needed to scrobble
+
+                <div id="configOptionsContainer" class="hide" hidden>
+                    <div class="flex flex-wrap-wrap align-items-center">
+                        <h3 id="simklAccount" class="flex-grow" style="margin-right: 1em;">Connected to Simkl.</h3>
+                        <div id="simklLinks" class="hide" hidden>
+                            <a id="simklPlaybackLink" class="button-link" href="https://simkl.com/" target="_blank" rel="noopener">Watch history - Playback Progress Manager on Simkl</a>
                         </div>
                     </div>
-                    <button is="emby-button" type="submit" class="raised button-submit block"><span>${Save}</span>
-                    </button>
-                    <button is="emby-button" type="button" class="raised block" onclick="history.back();"><span>${Cancel}</span>
-                    </button>
+                    <!-- A warning callout rather than a line of fieldDescription: this is the one prompt that moves an
+                         account off the old sign-in, and muted grey text under a heading was being read straight past.
+                         The colour lives on the border, the tint and the icon, never on the text, so it holds up on a
+                         light theme and a dark one alike; the text keeps whatever contrast the theme gives it. The
+                         icon is an empty span with the name as a class, which is how this Jellyfin builds them - a
+                         name its stylesheet does not carry renders as nothing rather than as the word itself.
+                         The button is on its own line because an emby-button inside a sentence is laid out as a
+                         block and breaks the text around it. -->
+                    <div class="hide" id="simklLegacyNotice" hidden
+                         style="margin: .75em 0 1.25em; padding: .85em 1em; border-left: 4px solid #ffa726; border-radius: 4px; background: rgba(255, 167, 38, .12);">
+                        <div style="display: flex; align-items: center; font-weight: 600; margin-bottom: .4em;">
+                            <span class="material-icons warning" aria-hidden="true" style="color: #ffa726; margin-right: .4em; font-size: 1.3em;"></span>
+                            <span>Old Simkl sign-in</span>
+                        </div>
+                        <div style="font-size: .95em; line-height: 1.45;">This account is connected with the old Simkl sign-in. It will keep working for a while yet, but it is being retired, so reconnect it when convenient to move it to the current sign-in. Nothing is lost by reconnecting: the Simkl account, its history and these settings all stay as they are.</div>
+                        <button is="emby-button" type="button" id="btnSimklReconnect" class="raised" style="margin-top: .9em;"><span>Reconnect to Simkl</span></button>
+                    </div>
+                    <button is="emby-button" type="button" id="btnSimklLogout" class="raised button block"><span>Log Out</span></button>
+
+                    <h2>Scrobbling options</h2>
+                    <div class="checkboxList checkboxListContainer">
+                        <div class="checkboxContainer">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="ScrobbleMovies" />
+                                <span>Autoscrobbling Movies</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="ScrobbleShows" />
+                                <span>Autoscrobbling TV Shows</span>
+                            </label>
+                        </div>
+                        <!-- checkboxContainer on its own is a ROW flex, which puts the description beside the label
+                             instead of under it and leaves no room on a phone. checkboxContainer-withDescription is
+                             Jellyfin's own class for the case and only sets flex-direction: column. -->
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <!-- The label is capped so the checkbox tick sits next to the text rather than at the far
+                                 edge of a full-width row. max-width, not width: emby-checkbox-label is width 100%, so
+                                 a fixed size would overflow a 360px phone once the page gutters are taken off.
+                                 min-height rather than the class's own height 2.35em: the tick is absolutely
+                                 positioned at top 3px and is 1.83em tall, so it needs that much room or it spills
+                                 onto the description below, but it still has to be able to grow when the text wraps
+                                 on a narrow screen. -->
+                            <label style="max-width: 290px; min-height: 2.35em; height: auto;">
+                                <input is="emby-checkbox" type="checkbox" id="SyncWatchedMarks" />
+                                <span>Sync manual marks to Simkl</span>
+                            </label>
+                            <!-- indented to clear the tick column and line up with the label's own text, which the
+                                 class indents by 2.4em -->
+                            <div class="fieldDescription" style="padding-left: 35px;">Marking played or unplayed in Jellyfin changes the Simkl history too. Playback is scrobbled either way.</div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label style="max-width: 290px; min-height: 2.35em; height: auto;">
+                                <input is="emby-checkbox" type="checkbox" id="AllowRewatch" />
+                                <span>Log rewatches on Simkl (Pro)</span>
+                            </label>
+                            <div class="fieldDescription hide" id="simklRewatchNote" hidden style="padding-left: 35px;">Needs a Simkl Pro or VIP plan. Upgrade at <a class="button-link" href="https://simkl.com/vip/" target="_blank" rel="noopener">simkl.com/vip</a>.</div>
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <input is="emby-input" id="MinLength" type="number" min="0" max="600" step="1" pattern="[0-9]*" label="Minimum runtime (minutes)" />
+                        <div class="fieldDescription">Movies and episodes with a shorter runtime are never scrobbled. 5 by default.</div>
+                    </div>
+
+                    <div class="fieldDescription">
+                        <ul style="margin: .5em 0 0; padding-left: 1.2em; list-style: disc;">
+                            <li>Play, pause and stop are reported to Simkl as they happen and show on the profile as watching now; who can see that is set under <a class="button-link" href="https://simkl.com/settings/privacy/" target="_blank" rel="noopener">Watching now privacy on Simkl</a>.</li>
+                            <li>An item is marked as watched when playback stops after 80%; stopping earlier saves the position on Simkl, where the Playback Progress Manager lists it.</li>
+                            <li>With manual marks on, marking a movie, an episode, a season or a whole series as played in Jellyfin marks it as watched on Simkl too, and unmarking a single movie or episode also removes it from the Simkl history. Unmarking a whole season or series does not touch the Simkl history, by design, so a bulk change in Jellyfin cannot wipe out a watch history.</li>
+                            <li>With rewatches on, finishing something that is already in the Simkl history is logged as a rewatch; this needs a Simkl Pro or VIP account and is ignored otherwise.</li>
+                        </ul>
+                    </div>
+
+                    <!-- the list above ends flush against these, so the gap belongs here rather than on the list -->
+                    <div style="margin-top: 1.5em;">
+                        <button is="emby-button" type="submit" class="raised button-submit block"><span>${Save}</span></button>
+                        <button is="emby-button" type="button" id="btnSimklBack" class="raised block"><span>${Cancel}</span></button>
+                    </div>
+
+                    <h2>Import history</h2>
+                    <div class="fieldDescription">Marks movies and episodes in the Jellyfin library as played when they are watched on Simkl, with the date they were watched. Nothing is sent from Jellyfin to Simkl.</div>
+                    <div class="importSection">
+                        <button is="emby-button" type="button" id="btnSimklImport" class="raised block"><span>Import changes since the last import</span></button>
+                        <div class="fieldDescription" id="importStatus"></div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-top: 1.5em;">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="AutoImport" />
+                            <span>Automatically import new Simkl history</span>
+                        </label>
+                        <div class="fieldDescription" style="padding-left: 35px;">Jellyfin asks Simkl whether this user watched anything new and marks only those items. The very first import goes through the whole history.</div>
+                    </div>
+                    <div class="selectContainer hide" id="autoImportInterval" hidden>
+                        <select is="emby-select" id="AutoImportHours" label="Check for new history">
+                            <option value="1">Every hour</option>
+                            <option value="3">Every 3 hours</option>
+                            <option value="6">Every 6 hours</option>
+                            <option value="12">Every 12 hours</option>
+                            <option value="24">Every day</option>
+                            <option value="168">Every week</option>
+                        </select>
+                        <div class="fieldDescription" id="autoImportStatus"></div>
+                    </div>
+
+                    <div style="margin-top: 2em;">
+                        <h3 style="margin-bottom: .25em;">Start over</h3>
+                        <div class="fieldDescription">Goes through the whole Simkl history again, for example when the import missed something or the user now has a different Simkl account. Nothing is unmarked: movies and episodes Jellyfin already has as played only get their watch date refreshed from Simkl.</div>
+                        <button is="emby-button" type="button" id="btnSimklReset" class="button-link" style="margin-top: .5em;"><span>Reset and re-import fully</span></button>
+                    </div>
+
+                    <div class="fieldDescription hide" id="simklSupport" hidden style="margin-top: 2em;">Support the development of the Jellyfin add-on for Simkl with a Super Supporter, PRO or VIP supporter plan at <a class="button-link" href="https://simkl.com/vip/" target="_blank" rel="noopener">simkl.com/vip</a>.</div>
                 </div>
             </form>
         </div>
     </div>
+
     <script type="text/javascript">
-        var SimklConfig = {
-            guid: "07CAEF58-A94B-4211-A62C-F9774E04EBDB",
-            onLoginProcess: false,
-            configCache: [],
-            loginTimer: null,
-            remainingTimer: null,
-            finish: null,
+        (function () {
+            'use strict';
 
-            userSelector: document.querySelector('#user-selector'),
-            loginButtonContainer: document.querySelector('#loginButtonContainer'),
-            configOptionsContainer: document.querySelector('#configOptionsContainer'),
-            simklName: document.querySelector('#simklName'),
-            loginSecondsRemaining: document.querySelector('#loginSecondsRemaining'),
-            loginText: document.querySelector('#loginText'),
-            loginPin: document.querySelector('#loginPin'),
-            loggingIn: document.querySelector('#loggingIn'),
+            var PLUGIN_ID = '07CAEF58-A94B-4211-A62C-F9774E04EBDB';
+            var IMPORT_POLL_MS = 2000;
+            var IMPORT_POLL_RETRIES = 5;
+            var SECTIONS = ['loginButtonContainer', 'loggingIn', 'configOptionsContainer'];
 
-            populateUsers: async function (users) {
-                users.forEach(function (user) {
-                    SimklConfig.userSelector.append(new Option(user.Name, user.Id));
+            // A user the plugin has never stored has no entry at all, so the page renders these and writes them on the first save.
+            var DEFAULTS = {
+                ScrobbleMovies: true,
+                ScrobbleShows: true,
+                SyncWatchedMarks: true,
+                AllowRewatch: false,
+                MinLength: 5,
+                AutoImport: false,
+                AutoImportHours: 24,
+                UserToken: ''
+            };
+
+            // The dashboard re-creates the <script> element when it injects a plugin page, so currentScript can sit
+            // outside this page (its parentElement is then the dashboard's own container, and every lookup below
+            // would silently resolve to null). Walk up to the page instead, and fall back to the last matching
+            // element in the document, which is the freshly injected one when an old copy is still around.
+            var page = (document.currentScript && document.currentScript.closest && document.currentScript.closest('#SimklConfigurationPage'))
+                || (function () {
+                    var found = document.querySelectorAll('#SimklConfigurationPage');
+                    return found[found.length - 1] || null;
+                })();
+
+            if (!page) {
+                console.error('Simkl: the configuration page element is not in the document; it cannot be set up');
+                return;
+            }
+
+            var state = {
+                userId: null,
+                active: false,
+                // what is on screen was rendered for the selected user, and so may be saved
+                loaded: false,
+                // what is on screen is still valid to save, but something changed behind it and the page re-reads
+                // itself the next time it is shown. Deliberately not "loaded": that one gates Save.
+                stale: false,
+                loginStarting: null,
+                loginAttempt: null,
+                loginFinish: 0,
+                loginTimer: null,
+                remainingTimer: null,
+                importTimer: null,
+                importRunning: false,
+                pollFailures: 0,
+                saveChain: Promise.resolve()
+            };
+
+            /* ---------- dom helpers ---------- */
+
+            function el(selector) {
+                return page.querySelector(selector);
+            }
+
+            function setVisible(node, visible) {
+                if (!node) {
+                    return;
+                }
+
+                node.classList.toggle('hide', !visible);
+                if (visible) {
+                    node.removeAttribute('hidden');
+                } else {
+                    node.setAttribute('hidden', '');
+                }
+            }
+
+            function showSection(id) {
+                SECTIONS.forEach(function (section) {
+                    setVisible(el('#' + section), section === id);
                 });
-            },
-            loadConfig: async function (user, config) {
-                if (config != null) {
-                    this.configCache = config;
-                } else {
-                    config = this.configCache;
-                }
+            }
 
-                console.log("Simkl: Loading config for user " + user);
-                console.log(config);
+            function notify(text) {
+                Dashboard.alert(text);
+            }
 
-                SimklConfig.loginButtonContainer.setAttribute('hidden', '');
-                SimklConfig.configOptionsContainer.setAttribute('hidden', '')
+            function showError(title, message) {
+                Dashboard.alert({ title: title, message: message });
+            }
 
-                if (config.UserConfigs.some(e => e.Id === user && e.UserToken != null && e.UserToken !== "")) {
-                    SimklConfig.configOptionsContainer.removeAttribute('hidden');
-                    await this.populateOptionsContainer(config.UserConfigs.filter(e => e.Id === user)[0]);
-                } else {
-                    SimklConfig.loginButtonContainer.removeAttribute('hidden');
-                }
-            },
-            saveConfig: async function (guid) {
-                const uconfig = this.configCache.UserConfigs.filter(e => e.Id === guid)[0];
-
-                for (const key in uconfig) {
-                    const element = document.querySelector("#configOptionsContainer #" + key);
-                    if (element) {
-                        if (element.type === 'checkbox') {
-                            uconfig[key] = element.checked;
-                        } else {
-                            if (element.value != null) {
-                                uconfig[key] = element.value;
-                            }
+            function ask(title, text, confirmText, callback) {
+                if (Dashboard.confirm) {
+                    Dashboard.confirm({ title: title, text: text, confirmText: confirmText }, title, function (confirmed) {
+                        if (confirmed) {
+                            callback();
                         }
-                    }
-                }
-
-                console.log("Saving config:");
-                console.log(this.configCache);
-                ApiClient.updatePluginConfiguration(this.guid, this.configCache).then(Dashboard.processPluginConfigurationUpdateResult);
-            },
-            populateOptionsContainer: async function (userConfig) {
-                SimklConfig.simklName.innerText = (await SimklAPI.getUserSettings(userConfig.Id)).user.name;
-
-                for (const key in userConfig) {
-                    const chk = document.querySelector("#configOptionsContainer input[type=checkbox]#" + key);
-                    if (chk) {
-                        chk.checked = userConfig[key];
-                    }
-
-                    const input = document.querySelector("#configOptionsContainer input[type=number]#" + key);
-                    if (input) {
-                        input.value = userConfig[key];
-                    }
-                }
-            },
-            startLoginProcess: async function () {
-                this.onLoginProcess = true;
-
-                const code = await SimklAPI.getCode();
-                this.finish = new Date();
-                this.finish.setSeconds(this.finish.getSeconds() + code.expires_in);
-                this.nextInterval = new Date();
-
-                this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this, code), code.Interval * 1000);
-                this.remainingTimer = window.setInterval(function () {
-                    SimklConfig.loginSecondsRemaining.innerText = Math.round((SimklConfig.finish.getTime() - (new Date().getTime())) / 1000);
-                }, 1000);
-
-                SimklConfig.loginText.innerHTML = 'Please visit <a href="' + code.verification_url + '/' + code.user_code + '" target="_blank">' + code.verification_url + '</a> on your phone or computer and enter the following code:';
-
-                SimklConfig.loginPin.innerText = code.user_code;
-
-                SimklConfig.loginButtonContainer.setAttribute('hidden', '');
-                SimklConfig.loggingIn.removeAttribute('hidden');
-            },
-            checkLoginProcess: async function (code) {
-                const response = await SimklAPI.checkCode(code.user_code);
-                console.log("Response:");
-                console.log(response);
-
-                if (new Date() > this.finish) {
-                    Dashboard.alert("Timed out!");
-                    await this.stopLoginProcess();
-                } else if (response.result === "KO") {
-                    this.loginTimer = window.setTimeout(this.checkLoginProcess.bind(this, code), code.Interval * 1000);
-                } else if (response.result === "OK") {
-                    await this.stopLoginProcess();
-
-                    // Save key on settings
-                    const uguid = SimklConfig.userSelector.value;
-                    const filter = this.configCache.UserConfigs.filter(function (c) {
-                        return c.Id === uguid;
                     });
-                    if (filter.length > 0) {
-                        filter[0].UserToken = response.access_token;
+                    return;
+                }
+
+                if (window.confirm(text)) {
+                    callback();
+                }
+            }
+
+            // Which user the administrator is working on outlives this script: the dashboard re-injects the page on
+            // its own occasions, and without this the selection would fall back to whoever is signed in and quietly
+            // move the edits to the wrong user. sessionStorage can throw or come back empty (private windows, blocked
+            // site data), so every use of it tolerates that and simply loses the memory.
+            var SELECTED_USER_KEY = 'simkl-selected-user';
+
+            function rememberUser(userId) {
+                try {
+                    if (userId) {
+                        sessionStorage.setItem(SELECTED_USER_KEY, userId);
                     } else {
-                        this.configCache.UserConfigs.push({
-                            Id: uguid,
-                            UserToken: response.access_token
-                        });
+                        sessionStorage.removeItem(SELECTED_USER_KEY);
                     }
-
-                    console.log(this.configCache);
-
-                    await ApiClient.updatePluginConfiguration(this.guid, this.configCache);
-                    await this.loadConfig(uguid);
-                } else {
-                    Dashboard.alert("Error logging in");
+                } catch (err) {
+                    /* nothing to do; the selection just will not survive a reload */
                 }
-            },
-            stopLoginProcess: async function () {
-                this.onLoginProcess = false;
-                window.clearTimeout(this.loginTimer);
-                window.clearInterval(this.remainingTimer);
-                SimklConfig.loginButtonContainer.removeAttribute('hidden');
-                SimklConfig.loggingIn.setAttribute('hidden', '');
-            },
-            onSelectorChange: async function () {
-                if (this.onLoginProcess) {
-                    await this.stopLoginProcess();
-                }
-                await this.loadConfig(SimklConfig.userSelector.value, null);
-            },
-            logOut: function (uguid) {
-                if (uguid == null) {
-                    uguid = SimklConfig.userSelector.value;
-                }
-
-                var filter = this.configCache.UserConfigs.filter(function (c) {
-                    return c.Id === uguid;
-                });
-                console.log(filter);
-
-                if (filter.length > 0) {
-                    filter[0].UserToken = "";
-                } else {
-                    console.log("User not found " + uguid);
-                }
-
-                console.log(this.configCache);
-                window.ApiClient.updatePluginConfiguration(this.guid, this.configCache);
-                this.loadConfig(uguid);
             }
-        }
 
-        var SimklAPI = {
-            getCode: function () {
-                const request = {
-                    url: window.ApiClient.getUrl('Simkl/oauth/pin'),
-                    type: 'GET',
-                    headers: {
-                        accept: 'application/json'
-                    }
+            function recallUser() {
+                try {
+                    return sessionStorage.getItem(SELECTED_USER_KEY);
+                } catch (err) {
+                    return null;
                 }
-
-                return window.ApiClient.fetch(request)
-                    .then(function (result) {
-                        return result;
-                    })
-                    .catch(function (result) {
-                        console.error(result);
-                        Dashboard.alert("Some error occurred, see browser log for more details");
-                        SimklConfig.stopLoginProcess();
-                    });
-            },
-            checkCode: function (user_code) {
-                const request = {
-                    url: window.ApiClient.getUrl('Simkl/oauth/pin/' + user_code),
-                    type: 'GET',
-                    headers: {
-                        accept: 'application/json'
-                    }
-                }
-
-                return window.ApiClient.fetch(request)
-                    .then(function (result) {
-                        return result;
-                    })
-                    .catch(function (result) {
-                        console.error(result);
-                        Dashboard.alert("Some error occurred, see browser log for more details");
-                        SimklConfig.stopLoginProcess();
-                    });
-            },
-            getUserSettings: function (secret) {
-                const request = {
-                    url: window.ApiClient.getUrl('Simkl/users/settings/' + secret),
-                    type: 'GET',
-                    headers: {
-                        accept: 'application/json'
-                    }
-                }
-
-                return window.ApiClient.fetch(request)
-                    .then(function (result) {
-                        return result;
-                    })
-                    .catch(function (result) {
-                        console.error(result);
-                        Dashboard.alert("Something went wrong, see logs for more details");
-                    });
             }
-        }
 
-        document.querySelector('#SimklConfigurationPage')
-            .addEventListener('pageshow', async function () {
-                Dashboard.showLoadingMsg();
-                await Promise.all([
-                    window.ApiClient.getUsers().then(SimklConfig.populateUsers),
-                    window.ApiClient.getPluginConfiguration(SimklConfig.guid).then(SimklConfig.loadConfig.bind(SimklConfig, ApiClient.getCurrentUserId()))]);
+            // Jellyfin serializes Guids without dashes ("N"), the stored config may still hold a dashed one.
+            function sameGuid(left, right) {
+                return String(left || '').replace(/-/g, '').toLowerCase() === String(right || '').replace(/-/g, '').toLowerCase();
+            }
+
+            // The plugin's own DTOs name their members in camelCase, Jellyfin's serializer may hand them back
+            // PascalCase, and null members are dropped from the response, so every read tries both spellings.
+            function pick(source) {
+                for (var i = 1; i < arguments.length; i++) {
+                    var value = source ? source[arguments[i]] : null;
+                    if (value !== undefined && value !== null) {
+                        return value;
+                    }
+                }
+
+                return null;
+            }
+
+            /* ---------- server calls ---------- */
+
+            function apiGet(path) {
+                return ApiClient.getJSON(ApiClient.getUrl(path));
+            }
+
+            function apiPost(path) {
+                return ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl(path), dataType: 'json' });
+            }
+
+            function describeError(err, what) {
+                var status = err && err.status;
+                var login = !what;
+                what = what || 'Simkl login';
+                console.error('Simkl: ' + what + ' request failed', err);
+
+                // only the device login routes call out to api.simkl.com; a 500 on a settings call is Jellyfin's own
+                if (login && (status === 500 || status === 503)) {
+                    return 'Jellyfin could not reach api.simkl.com. Check the server\'s outbound firewall or seedbox rules, then try again.';
+                }
+
+                if (!status || status === 404 || status === 502 || status === 504) {
+                    return 'The Jellyfin server could not be reached at ' + ApiClient.serverAddress()
+                        + '. If you use a custom domain or reverse proxy, open Jellyfin by its IP address and log in from there.';
+                }
+
+                if (status === 401 || status === 403) {
+                    return 'Only an administrator can read or change these settings. Sign in to Jellyfin as an administrator and reopen this page.';
+                }
+
+                return what + ' failed (HTTP ' + status + '). See the browser console for details.';
+            }
+
+            function fetchConfiguration() {
+                return ApiClient.getPluginConfiguration(PLUGIN_ID).then(normalize);
+            }
+
+            function normalize(config) {
+                config = config || {};
+                if (!Array.isArray(config.UserConfigs)) {
+                    config.UserConfigs = [];
+                }
+
+                return config;
+            }
+
+            function findEntry(config, userId) {
+                return config.UserConfigs.filter(function (entry) {
+                    return sameGuid(entry.Id, userId);
+                })[0];
+            }
+
+            function effectiveEntry(config, userId) {
+                return Object.assign({}, DEFAULTS, findEntry(config, userId) || {});
+            }
+
+            // The whole plugin configuration is one document shared by every user and written by the server too (a token
+            // Simkl rejected is cleared there), so a save re-reads it and patches one user's entry instead of writing back
+            // a cached copy. Saves are chained as well: one started while another is in flight would otherwise undo it.
+            function saveConfiguration(userId, patch) {
+                var chained;
+                var run = function () {
+                    Dashboard.showLoadingMsg();
+                    return fetchConfiguration().then(function (config) {
+                        var entry = findEntry(config, userId);
+                        if (!entry) {
+                            entry = Object.assign({ Id: userId }, DEFAULTS);
+                            config.UserConfigs.push(entry);
+                        }
+
+                        patch(entry);
+                        return ApiClient.updatePluginConfiguration(PLUGIN_ID, config);
+                    }).then(function () {
+                        Dashboard.processPluginConfigurationUpdateResult();
+                        // only the last save of a burst re-renders, so edits made meanwhile stay on screen
+                        if (state.active && state.saveChain === chained && sameGuid(state.userId, userId)) {
+                            loadConfiguration();
+                        }
+
+                        return true;
+                    }, function (err) {
+                        Dashboard.hideLoadingMsg();
+                        showError('Saving settings', describeError(err, 'Saving settings'));
+                        return false;
+                    });
+                };
+
+                chained = state.saveChain.then(run, run);
+                state.saveChain = chained;
+                return chained;
+            }
+
+            /* ---------- scrobbling options ---------- */
+
+            // read at the click, so a save queued behind another one keeps what was on screen when it was requested
+            function formOptions() {
+                var rewatch = el('#AllowRewatch');
+                return {
+                    ScrobbleMovies: el('#ScrobbleMovies').checked,
+                    ScrobbleShows: el('#ScrobbleShows').checked,
+                    SyncWatchedMarks: el('#SyncWatchedMarks').checked,
+                    AllowRewatch: rewatch.checked && !rewatch.disabled,
+                    MinLength: Math.max(0, parseInt(el('#MinLength').value, 10) || 0)
+                };
+            }
+
+            /* ---------- device login ---------- */
+
+            // The device code never reaches the browser: the server keeps it against the user id, polls Simkl with it
+            // and stores the tokens itself, so a completed login is picked up by re-reading the configuration rather
+            // than by writing a token back from here.
+            function loginPath(userId, action) {
+                return 'Simkl/oauth/device/' + userId + (action || '');
+            }
+
+            function stopLogin(keepServerSide) {
+                if (state.loginTimer) {
+                    clearTimeout(state.loginTimer);
+                    state.loginTimer = null;
+                }
+
+                if (state.remainingTimer) {
+                    clearInterval(state.remainingTimer);
+                    state.remainingTimer = null;
+                }
+
+                var attempt = state.loginAttempt;
+                state.loginAttempt = null;
+                // a login left behind on the server would keep a code alive for its full fifteen minutes
+                if (attempt && !keepServerSide) {
+                    apiPost(loginPath(attempt.userId, '/cancel')).catch(function () { /* nothing to do about it */ });
+                }
+
+                // Only when a login was actually up. A reconnect is started from the connected view, and cancelling
+                // it must go back there rather than tell a user who is still signed in that they are not. This runs
+                // on the way out of the page as well, because the dashboard keeps it in the DOM and can show it
+                // again without reloading, which would otherwise bring back a code nothing is polling for; leaving
+                // a page where no login was running must change nothing at all.
+                if (attempt) {
+                    showSection(attempt.wasConnected ? 'configOptionsContainer' : 'loginButtonContainer');
+                }
+            }
+
+            function abortLogin(message) {
                 Dashboard.hideLoadingMsg();
-            });
+                stopLogin();
+                showError('Simkl login', message);
+            }
 
-        document.querySelector('#SimklConfigurationForm')
-            .addEventListener('submit', function (e) {
+            function scheduleLoginCheck(attempt) {
+                state.loginTimer = setTimeout(function () {
+                    state.loginTimer = null;
+                    checkLogin(attempt);
+                }, Math.max(5, attempt.interval) * 1000);
+            }
+
+            // loginAttempt ties every poll to the attempt that started it: an answer landing after Cancel, after another
+            // user was picked or after the page was left is dropped instead of acting on the new state.
+            function checkLogin(attempt) {
+                apiPost(loginPath(attempt.userId, '/poll')).then(function (response) {
+                    if (state.loginAttempt !== attempt) {
+                        return;
+                    }
+
+                    attempt.failures = 0;
+                    var status = pick(response, 'status', 'Status');
+                    if (status === 'connected') {
+                        stopLogin(true);
+                        loadConfiguration();
+                        return;
+                    }
+
+                    if (status === 'pending') {
+                        // slow_down comes back as a wider interval; honour it for the rest of this attempt
+                        attempt.interval = Math.max(attempt.interval, pick(response, 'interval', 'Interval') || 0);
+                        if (Date.now() > state.loginFinish) {
+                            abortLogin('The code ran out before it was entered. Please try again.');
+                        } else {
+                            scheduleLoginCheck(attempt);
+                        }
+
+                        return;
+                    }
+
+                    if (status === 'expired') {
+                        abortLogin('The code ran out before it was entered. Please try again.');
+                        return;
+                    }
+
+                    abortLogin(pick(response, 'message', 'Message') || 'Error logging in');
+                }, function (err) {
+                    if (state.loginAttempt !== attempt) {
+                        return;
+                    }
+
+                    // this is a request to the Jellyfin server in front of us, and a blip on it says nothing about
+                    // the login: the device code is good for fifteen minutes, and the server keeps polling
+                    // Simkl through its own transient failures. Throwing the attempt away on the first one would
+                    // make a momentary hiccup look like a refused login.
+                    attempt.failures = (attempt.failures || 0) + 1;
+                    if (attempt.failures < 3 && Date.now() < state.loginFinish) {
+                        scheduleLoginCheck(attempt);
+                        return;
+                    }
+
+                    abortLogin(describeError(err));
+                });
+            }
+
+            function renderRemaining() {
+                el('#loginSecondsRemaining').textContent = String(Math.max(0, Math.round((state.loginFinish - Date.now()) / 1000)));
+            }
+
+            function startLogin() {
+                var userId = state.userId;
+                if (!userId) {
+                    return;
+                }
+
+                // the attempt only exists once Simkl has answered, so a second click before then would ask for a
+                // second code and leave the first one's timers running with nothing able to stop them
+                // per user, not a bare flag: a code being issued for one user must not make the button inert and
+                // silent for another the admin switches to while it is on the wire
+                if (state.loginStarting && sameGuid(state.loginStarting, userId)) {
+                    return;
+                }
+
+                var wasConnected = !el('#configOptionsContainer').classList.contains('hide');
+                if (state.loginAttempt) {
+                    stopLogin();
+                }
+
+                state.loginStarting = userId;
+                Dashboard.showLoadingMsg();
+                apiPost(loginPath(userId)).then(function (response) {
+                    if (sameGuid(state.loginStarting, userId)) {
+                        state.loginStarting = null;
+                    }
+
+                    Dashboard.hideLoadingMsg();
+                    if (!state.active || !sameGuid(state.userId, userId)) {
+                        return;     // left the page or picked another user while the code was being issued
+                    }
+
+                    var userCode = String(pick(response, 'userCode', 'UserCode') || '');
+                    if (pick(response, 'status', 'Status') !== 'pending' || !userCode) {
+                        showError('Simkl login', pick(response, 'message', 'Message') || 'Simkl did not issue a code. Please try again.');
+                        return;
+                    }
+
+                    var attempt = {
+                        userId: userId,
+                        interval: Math.max(5, pick(response, 'interval', 'Interval') || 5),
+                        wasConnected: wasConnected
+                    };
+                    state.loginAttempt = attempt;
+                    state.loginFinish = Date.now() + ((pick(response, 'expiresIn', 'ExpiresIn') || 900) * 1000);
+
+                    var url = String(pick(response, 'verificationUri', 'VerificationUri') || 'https://simkl.com/pin');
+                    var link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noopener';
+                    link.textContent = url;
+
+                    var text = el('#loginText');
+                    text.textContent = 'Please visit ';
+                    text.appendChild(link);
+                    text.appendChild(document.createTextNode(' on a phone or computer and enter the following code:'));
+                    el('#loginPin').textContent = userCode;
+
+                    // the same page with the code already filled in, for whoever is at this screen
+                    var shortcut = el('#loginShortcut');
+                    shortcut.textContent = '';
+                    var complete = pick(response, 'verificationUriComplete', 'VerificationUriComplete');
+                    if (complete) {
+                        var direct = document.createElement('a');
+                        direct.className = 'button-link';
+                        direct.href = String(complete);
+                        direct.target = '_blank';
+                        direct.rel = 'noopener';
+                        direct.textContent = 'Open it with the code already filled in';
+                        shortcut.appendChild(direct);
+                    }
+
+                    renderRemaining();
+                    state.remainingTimer = setInterval(renderRemaining, 1000);
+                    scheduleLoginCheck(attempt);
+                    showSection('loggingIn');
+                }, function (err) {
+                    if (sameGuid(state.loginStarting, userId)) {
+                        state.loginStarting = null;
+                    }
+
+                    Dashboard.hideLoadingMsg();
+                    if (!state.active || !sameGuid(state.userId, userId)) {
+                        console.error('Simkl: device login start failed for a user who is no longer selected', err);
+                        return;
+                    }
+
+                    abortLogin(describeError(err));
+                });
+            }
+
+            // A logout goes through the plugin's own route, not a configuration save. The login is server owned:
+            // the server writes it on a device login and on every token renewal, and it takes those fields from
+            // its own copy on any posted configuration, so clearing a token from here would simply be ignored.
+            function logOut() {
+                var userId = state.userId;
+                Dashboard.showLoadingMsg();
+                apiPost('Simkl/logout/' + userId).then(function () {
+                    Dashboard.hideLoadingMsg();
+                    if (state.active && sameGuid(state.userId, userId)) {
+                        loadConfiguration();
+                    }
+                }, function (err) {
+                    Dashboard.hideLoadingMsg();
+                    showError('Logging out', describeError(err, 'Logging out'));
+                });
+            }
+
+            /* ---------- simkl account ---------- */
+
+            // The Simkl account behind the stored token is read on every load and never stored, so a re-login can never show
+            // a stale name. Rewatches are a Pro feature: a known free account cannot tick the box, and a box ticked on a plan
+            // that has since lapsed is cleared here (saved by the next Save) and ignored by the server anyway.
+            function renderAccount(account) {
+                var id = pick(account, 'id', 'Id');
+                var known = !!id;
+                var plan = String(pick(account, 'plan', 'Plan') || '').toLowerCase();
+                var free = known && plan === 'free';
+                var name = pick(account, 'name', 'Name');
+                var suffix = plan === 'vip' ? ' (VIP)' : plan === 'pro' ? ' (PRO)' : '';
+
+                el('#simklAccount').textContent = known && name
+                    ? 'Connected to Simkl as ' + name + suffix + '.'
+                    : 'Connected to Simkl.';
+                setVisible(el('#simklSupport'), free);
+                setVisible(el('#simklRewatchNote'), free);
+
+                var rewatch = el('#AllowRewatch');
+                rewatch.disabled = free;
+                if (free) {
+                    rewatch.checked = false;
+                }
+
+                setVisible(el('#simklLinks'), known);
+                if (known) {
+                    el('#simklPlaybackLink').href = 'https://simkl.com/' + id + '/history/playback-progress-manager/';
+                }
+
+                // a login from the old pin flow: nothing is broken, it just belongs on the current sign-in
+                setVisible(el('#simklLegacyNotice'), !!pick(account, 'legacy', 'Legacy'));
+            }
+
+            // An empty account is also what the server answers after Simkl rejected the token and it was cleared, so the
+            // stored configuration is re-read and the page re-rendered from it; the token check keeps a 200 without an
+            // account id from looping.
+            function fetchAccount(userId) {
+                apiGet('Simkl/account/' + userId).then(function (account) {
+                    if (!state.active || !sameGuid(state.userId, userId)) {
+                        // Only a page that was left needs re-reading. An answer for a user who is no longer the
+                        // selected one has already been superseded by a render for the user who is, and clearing
+                        // the flag here would tell that render it never happened, which silently stops Save.
+                        if (!state.active) {
+                            state.loaded = false;   // the next time the page is shown it reloads
+                        }
+
+                        return null;
+                    }
+
+                    if (pick(account, 'id', 'Id')) {
+                        renderAccount(account);
+                        return null;
+                    }
+
+                    return fetchConfiguration().then(function (config) {
+                        if (effectiveEntry(config, userId).UserToken) {
+                            return;
+                        }
+
+                        if (state.active && sameGuid(state.userId, userId)) {
+                            loadConfiguration();
+                        } else if (!state.active) {
+                            state.loaded = false;
+                        }
+                    });
+                }).catch(function (err) {
+                    console.error('Simkl: account request failed', err);
+                });
+            }
+
+            /* ---------- history import ---------- */
+
+            function importPath(userId) {
+                return 'Simkl/import/' + userId;
+            }
+
+            function formatImportDate(iso) {
+                var date = new Date(iso);
+                return isNaN(date.getTime()) ? iso : date.toLocaleString();
+            }
+
+            function describeImportStatus(status) {
+                var message = pick(status, 'message', 'Message') || '';
+                if (pick(status, 'running', 'Running')) {
+                    return message || 'Importing...';
+                }
+
+                var last = pick(status, 'lastImportAt', 'LastImportAt');
+                var text = last ? 'Last import ' + formatImportDate(last) + '. ' + message : message;
+                return text || 'No import has run yet.';
+            }
+
+            function stopImportPolling() {
+                if (state.importTimer) {
+                    clearTimeout(state.importTimer);
+                    state.importTimer = null;
+                }
+            }
+
+            function scheduleImportPoll() {
+                stopImportPolling();
+                state.importTimer = setTimeout(function () {
+                    state.importTimer = null;
+                    refreshImportStatus(state.userId);
+                }, IMPORT_POLL_MS);
+            }
+
+            function setImportRunning(running) {
+                state.importRunning = running;
+                el('#btnSimklImport').disabled = running;
+                el('#btnSimklReset').disabled = running;
+            }
+
+            function applyImportStatus(userId, status) {
+                if (!state.active || !sameGuid(state.userId, userId)) {
+                    if (!state.active) {
+                        state.loaded = false;   // a status that could not be applied is re-read the next time the page is shown
+                    }
+
+                    return;
+                }
+
+                state.pollFailures = 0;
+
+                var wasRunning = state.importRunning;
+                setImportRunning(!!pick(status, 'running', 'Running'));
+                el('#importStatus').textContent = describeImportStatus(status);
+
+                var lastAuto = pick(status, 'lastAutoRunAt', 'LastAutoRunAt');
+                el('#autoImportStatus').textContent = lastAuto
+                    ? 'Last automatic check ' + formatImportDate(lastAuto) + '.'
+                    : 'No automatic check has run yet.';
+
+                if (state.importRunning) {
+                    scheduleImportPoll();
+                    return;
+                }
+
+                if (!wasRunning) {
+                    return;
+                }
+
+                var error = pick(status, 'error', 'Error');
+                if (error) {
+                    showError('Simkl import', error);
+                } else {
+                    notify('Import finished');
+                }
+
+                // A login owns the screen while its code is up, and re-rendering from the stored configuration
+                // would replace that code with the settings view while the attempt carries on polling behind it.
+                if (state.loginAttempt) {
+                    state.stale = true;
+                    return;
+                }
+
+                loadConfiguration();    // a run can end with the Simkl token cleared, so re-render from the stored config
+            }
+
+            function refreshImportStatus(userId) {
+                apiGet(importPath(userId) + '/status').then(function (status) {
+                    applyImportStatus(userId, status);
+                }, function (err) {
+                    if (!state.active || !sameGuid(state.userId, userId)) {
+                        return;
+                    }
+
+                    // the run keeps going on the server, so a failed poll is retried before giving up
+                    if (state.importRunning) {
+                        state.pollFailures = (state.pollFailures || 0) + 1;
+                        if (state.pollFailures < IMPORT_POLL_RETRIES) {
+                            console.error('Simkl: import status poll failed, retrying', err);
+                            el('#importStatus').textContent = 'Waiting for the Jellyfin server (retry ' + state.pollFailures + ' of ' + IMPORT_POLL_RETRIES + ')...';
+                            scheduleImportPoll();
+                            return;
+                        }
+
+                        setImportRunning(false);
+
+                        // not state.loaded: the page is on screen and correctly rendered, and that flag doubles as
+                        // the precondition for Save, so clearing it here would quietly stop the button working
+                        state.stale = true;     // reopening the page picks the result up
+                        el('#importStatus').textContent = 'Lost the connection to Jellyfin while the import was running. It continues on the server; reopen this page to see the result.';
+                        showError('Simkl import', 'Could not read the import status' + (err && err.status ? ' (HTTP ' + err.status + ')' : '')
+                            + '. The import keeps running on the server; reopen this page to see the result.');
+                        return;
+                    }
+
+                    setImportRunning(false);
+                    showError('Simkl import status', describeError(err, 'Simkl import status'));
+                });
+            }
+
+            // changes since the last import = what Simkl reports as watched since then (the very first run takes everything);
+            // everything = forget what was imported before and go through the whole history, refreshing Simkl's watch dates
+            // on items Jellyfin already has as played
+            function startImport(everything) {
+                var userId = state.userId;
+                var title = everything ? 'Reset and re-import fully' : 'Import changes since the last import';
+                var text = everything
+                    ? 'Goes through the whole Simkl history again. Movies and episodes already marked as played in Jellyfin get the watch date from Simkl. Nothing is unmarked and nothing is sent to Simkl.'
+                    : 'Asks Simkl what this user watched since the last import and marks those movies and episodes as played in Jellyfin. The very first import goes through the whole history. Nothing is sent to Simkl.';
+
+                ask(title, text, 'Import', function () {
+                    Dashboard.showLoadingMsg();
+                    apiPost(importPath(userId) + (everything ? '/reset' : '/check')).then(function (status) {
+                        Dashboard.hideLoadingMsg();
+                        if (pick(status, 'running', 'Running')) {
+                            applyImportStatus(userId, status);
+                            if (everything) {
+                                notify('Re-import started');   // the status line sits under the main button, not next to this link
+                            }
+
+                            return;
+                        }
+
+                        showError(title, pick(status, 'error', 'Error') || pick(status, 'message', 'Message') || 'Import could not be started.');
+                    }, function (err) {
+                        Dashboard.hideLoadingMsg();
+                        showError(title, describeError(err, 'Simkl import'));
+                    });
+                });
+            }
+
+            // Switching automatic import on runs the same check the scheduled task does, right away: a full import when
+            // nothing was imported yet, otherwise the cheap incremental one. userId comes from the caller, because the
+            // dropdown may have moved on while the save before this check was running.
+            function startAutoCheck(userId) {
+                // read before the request: the reload the save just issued may poll the new run before this answer lands
+                var tracked = state.importRunning;
+                apiPost(importPath(userId) + '/check?automatic=true').then(function (status) {
+                    if (!state.active || !sameGuid(state.userId, userId)) {
+                        if (!state.active) {
+                            state.loaded = false;
+                        }
+
+                        return;
+                    }
+
+                    var error = pick(status, 'error', 'Error');
+                    var running = pick(status, 'running', 'Running');
+                    if (error && !running) {
+                        showError('Simkl import', error);
+                        return;
+                    }
+
+                    if (running && !tracked) {
+                        notify('Checking Simkl for new history');
+                    }
+
+                    applyImportStatus(userId, status);
+                }, function (err) {
+                    console.error('Simkl: automatic check request failed', err);
+                });
+            }
+
+            /* ---------- users and rendering ---------- */
+
+            function userLabel(option, connected) {
+                option.textContent = option.getAttribute('data-name') + (connected ? ' - connected to Simkl' : ' - not connected');
+            }
+
+            function populateUsers() {
+                return Promise.all([ApiClient.getUsers(), fetchConfiguration()]).then(function (results) {
+                    var users = results[0] || [];
+                    var config = results[1];
+                    var selector = el('#userSelector');
+                    // the user last worked on wins over the signed in one, so a reload of the page keeps its place
+                    var wanted = state.userId || recallUser() || ApiClient.getCurrentUserId();
+
+                    selector.innerHTML = '';
+                    users.forEach(function (user) {
+                        var option = new Option('', user.Id);
+                        option.setAttribute('data-name', user.Name || user.Id);
+                        userLabel(option, !!effectiveEntry(config, user.Id).UserToken);
+                        selector.appendChild(option);
+                    });
+
+                    var match = users.filter(function (user) {
+                        return sameGuid(user.Id, wanted);
+                    })[0] || users[0];
+
+                    selector.value = match ? match.Id : '';
+                    state.userId = selector.value || null;
+                    rememberUser(state.userId);
+                    setVisible(el('#noUsers'), !users.length);
+                    setVisible(el('#userSelectContainer'), !!users.length);
+                    return config;
+                });
+            }
+
+            function loadConfiguration(preloaded) {
+                var userId = state.userId;
+                if (!userId) {
+                    showSection('');
+                    return;
+                }
+
+                Dashboard.showLoadingMsg();
+                Promise.resolve(preloaded || fetchConfiguration()).then(function (config) {
+                    Dashboard.hideLoadingMsg();
+                    if (!state.active || !sameGuid(state.userId, userId)) {
+                        return;     // left the page or picked another user while loading
+                    }
+
+                    var entry = effectiveEntry(config, userId);
+                    var option = el('#userSelector').selectedOptions[0];
+                    if (option) {
+                        userLabel(option, !!entry.UserToken);
+                    }
+
+                    if (!entry.UserToken) {
+                        stopImportPolling();
+                        setImportRunning(false);    // through the setter: it also re-enables the two import buttons
+                        showSection('loginButtonContainer');
+                        state.loaded = true;
+                        state.stale = false;
+                        return;
+                    }
+
+                    renderAccount(null);
+                    fetchAccount(userId);
+                    el('#ScrobbleMovies').checked = entry.ScrobbleMovies !== false;
+                    el('#ScrobbleShows').checked = entry.ScrobbleShows !== false;
+                    // !== false, like the two above: a user stored before this setting existed has no value for it
+                    // and must keep mirroring, which is what the server side defaults to as well
+                    el('#SyncWatchedMarks').checked = entry.SyncWatchedMarks !== false;
+                    el('#AllowRewatch').checked = entry.AllowRewatch === true;
+                    el('#MinLength').value = String(entry.MinLength === null ? DEFAULTS.MinLength : entry.MinLength);
+                    el('#AutoImport').checked = entry.AutoImport === true;
+                    el('#AutoImportHours').value = String(entry.AutoImportHours || DEFAULTS.AutoImportHours);
+                    setVisible(el('#autoImportInterval'), entry.AutoImport === true);
+                    showSection('configOptionsContainer');
+                    refreshImportStatus(userId);
+                    state.loaded = true;
+                    state.stale = false;
+                }, function (err) {
+                    Dashboard.hideLoadingMsg();
+                    // nothing was rendered, so the page must not count as loaded: the dashboard can show it again
+                    // without re-running the script, and onShow only reloads what it believes is unloaded
+                    state.loaded = false;
+                    if (state.active) {
+                        showError('Loading settings', describeError(err, 'Loading settings'));
+                    }
+                });
+            }
+
+            /* ---------- events ---------- */
+
+            function onSubmit(e) {
                 e.preventDefault();
 
-                Dashboard.showLoadingMsg();
-                SimklConfig.saveConfig(SimklConfig.userSelector.value);
-                Dashboard.hideLoadingMsg();
+                // The user dropdown lives in this same form, and a browser performs an implicit submit when Enter
+                // is pressed with a <select> focused - so arrow-keying to another user and pressing Enter lands
+                // here while the scrobbling block is hidden and has never been rendered for that user.
+                // formOptions would then read unchecked boxes and an empty MinLength and save scrobbling switched
+                // off. Only save what is actually on screen. (The inline onsubmit on the form stops the
+                // navigation; it does not stop this handler.)
+                if (!state.loaded || !state.userId || el('#configOptionsContainer').classList.contains('hide')) {
+                    return false;
+                }
+
+                var options = formOptions();
+                saveConfiguration(state.userId, function (entry) {
+                    Object.assign(entry, options);
+                });
+
+                return false;
+            }
+
+            function onUserChange() {
+                stopLogin();
+                stopImportPolling();
+                // through the setter, and clearing the two status lines too: they belong to the user being left,
+                // and applyImportStatus only ever overwrites them, so otherwise the next user inherits them
+                setImportRunning(false);
+                el('#importStatus').textContent = '';
+                el('#autoImportStatus').textContent = '';
+                state.userId = el('#userSelector').value || null;
+                rememberUser(state.userId);
+                showSection('');
+                loadConfiguration();
+            }
+
+            function onAutoImportChange() {
+                var toggle = el('#AutoImport');
+                var checked = toggle.checked;
+                var options = formOptions();
+                var userId = state.userId;
+
+                setVisible(el('#autoImportInterval'), checked);
+                // the reload after saving re-renders the checkboxes, so unsaved scrobble edits are carried along
+                saveConfiguration(userId, function (entry) {
+                    Object.assign(entry, options);
+                    entry.AutoImport = checked;
+                }).then(function (saved) {
+                    if (!saved) {
+                        toggle.checked = !checked;
+                        setVisible(el('#autoImportInterval'), !checked);
+                    } else if (checked) {
+                        startAutoCheck(userId);
+                    }
+                });
+            }
+
+            function onAutoImportHoursChange() {
+                var hours = parseInt(el('#AutoImportHours').value, 10) || DEFAULTS.AutoImportHours;
+                var options = formOptions();
+                saveConfiguration(state.userId, function (entry) {
+                    Object.assign(entry, options);
+                    entry.AutoImportHours = hours;
+                });
+            }
+
+            // Every listener is remembered so unbindEvents can take it off again, which is what retires the closure
+            // of a previous visit when the dashboard reuses the page element. A control that is somehow missing is
+            // reported and skipped rather than thrown on: one absent node used to abort the whole setup, leaving a
+            // page that looks fine and does nothing.
+            var bound = [];
+
+            function on(selector, event, handler) {
+                var node = el(selector);
+                if (!node) {
+                    console.error('Simkl: ' + selector + ' is missing from the configuration page');
+                    return;
+                }
+
+                node.addEventListener(event, handler);
+                bound.push([node, event, handler]);
+            }
+
+            function bindEvents() {
+                // onShow runs on every activation, not only on a fresh injection of this script, and the dashboard
+                // can hide and re-show the same element. Without this the handlers would be added a second time and
+                // every click would fire twice.
+                unbindEvents();
+                on('#SimklConfigurationForm', 'submit', onSubmit);
+                on('#userSelector', 'change', onUserChange);
+                on('#btnSimklLogin', 'click', startLogin);
+                on('#btnSimklCreate', 'click', function () {
+                    window.open('https://simkl.com/', '_blank', 'noopener');
+                });
+                on('#btnSimklCancel', 'click', function () {
+                    stopLogin();
+                });
+                // a reconnect is just a login: the new token replaces the old one, which never has to be revoked here
+                on('#btnSimklReconnect', 'click', startLogin);
+                on('#btnSimklLogout', 'click', logOut);
+                on('#btnSimklBack', 'click', function () {
+                    history.back();
+                });
+                on('#btnSimklImport', 'click', function () {
+                    startImport(false);
+                });
+                on('#btnSimklReset', 'click', function () {
+                    startImport(true);
+                });
+                on('#AutoImport', 'change', onAutoImportChange);
+                on('#AutoImportHours', 'change', onAutoImportHoursChange);
+            }
+
+            function unbindEvents() {
+                bound.forEach(function (entry) {
+                    entry[0].removeEventListener(entry[1], entry[2]);
+                });
+
+                bound = [];
+            }
+
+            function onShow() {
+                // viewshow and pageshow both arrive, and the script also starts the first load itself; the first
+                // one in owns it, so the initial load never runs twice
+                if (state.active) {
+                    return;
+                }
+
+                state.active = true;
+                bindEvents();
+
+                if (!state.loaded || state.stale) {
+                    populateUsers().then(function (config) {
+                        loadConfiguration(config);
+                    }, function (err) {
+                        Dashboard.hideLoadingMsg();
+                        showError('Loading settings', describeError(err, 'Loading users'));
+                    });
+                    return;
+                }
+
+                if (state.importRunning) {
+                    refreshImportStatus(state.userId);
+                }
+            }
+
+            // The dashboard keeps the page in the DOM, so every timer is stopped on the way out and an unfinished
+            // login is dropped; a status that was running is read again the next time the page is shown.
+            function onHide() {
+                state.active = false;
+                stopImportPolling();
+                stopLogin();
+            }
+
+            var SHOW_EVENTS = ['viewshow', 'pageshow'];
+            var HIDE_EVENTS = ['pagehide', 'viewhide', 'viewdestroy'];
+
+            // Retires this visit completely: the dashboard may hand the same page element to the next run of this
+            // script, and a listener left behind would keep driving this run's state after it is done with.
+            function teardown() {
+                onHide();
+                unbindEvents();
+                SHOW_EVENTS.forEach(function (name) {
+                    page.removeEventListener(name, onShow);
+                });
+                HIDE_EVENTS.forEach(function (name) {
+                    page.removeEventListener(name, onHide);
+                });
+            }
+
+            if (window.SimklConfigPage && window.SimklConfigPage.teardown) {
+                window.SimklConfigPage.teardown();
+            }
+
+            window.SimklConfigPage = { teardown: teardown };
+
+            SHOW_EVENTS.forEach(function (name) {
+                page.addEventListener(name, onShow);
             });
+
+            HIDE_EVENTS.forEach(function (name) {
+                page.addEventListener(name, onHide);
+            });
+
+            // The script only runs because the dashboard is putting this page on screen, and depending on how it
+            // got there its show event may already have been and gone. Start the load here rather than wait for an
+            // event that may never arrive; onShow ignores the events that follow.
+            onShow();
+        })();
     </script>
 </div>
 </body>
