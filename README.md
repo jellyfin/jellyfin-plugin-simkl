@@ -12,6 +12,7 @@
 - Logs a rewatch when you finish something already in your history (needs Simkl Pro or VIP)
 - Identifies an item by its file name when Simkl cannot match it by id
 - Skips anything shorter than a runtime you choose
+- Leaves out library folders you exclude: nothing in them is scrobbled, mirrored or marked by the import
 
 ## Setup
 Open Dashboard, then Plugins, then Simkl. Pick a user, click Log In, and enter the code it shows at
