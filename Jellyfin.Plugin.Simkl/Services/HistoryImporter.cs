@@ -342,7 +342,7 @@ namespace Jellyfin.Plugin.Simkl.Services
                 {
                     run.Message = "Reading Jellyfin library...";
                     _logger.LogInformation("Import for {UserName}: reading Jellyfin library", user.Username);
-                    index = new LibraryIndex(_libraryManager, user, cancellationToken);
+                    index = new LibraryIndex(_libraryManager, user, cancellationToken, config.IsExcluded);
                     index.Prepare(changed);   // a change confined to movies never reads the series and episodes
                     _logger.LogInformation("Import for {UserName}: {Index}", user.Username, index.Describe());
                     if (_logger.IsEnabled(LogLevel.Debug))

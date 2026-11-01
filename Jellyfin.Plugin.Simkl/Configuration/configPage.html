@@ -115,6 +115,12 @@
                         <div class="fieldDescription">Movies and episodes with a shorter runtime are never scrobbled. 5 by default.</div>
                     </div>
 
+                    <h2>Excluded library folders</h2>
+                    <!-- filled in from the server's libraries when a user is shown; until then it holds no boxes and is
+                         marked not ready, and a save leaves the stored list alone rather than reading it as empty -->
+                    <div class="checkboxList checkboxListContainer" id="simklExcludedLocations" data-ready="0"></div>
+                    <div class="fieldDescription">Nothing in a ticked folder is scrobbled, sent to Simkl as a manual mark, or marked played by the import. Tick every folder of a library to leave the whole library out. Useful for videos Simkl can only match by title, which it then logs as an unrelated movie.</div>
+
                     <div class="fieldDescription">
                         <ul style="margin: .5em 0 0; padding-left: 1.2em; list-style: disc;">
                             <li>Play, pause and stop are reported to Simkl as they happen and show on the profile as watching now; who can see that is set under <a class="button-link" href="https://simkl.com/settings/privacy/" target="_blank" rel="noopener">Watching now privacy on Simkl</a>.</li>
@@ -184,6 +190,7 @@
                 SyncWatchedMarks: true,
                 AllowRewatch: false,
                 MinLength: 5,
+                LocationsExcluded: [],
                 AutoImport: false,
                 AutoImportHours: 24,
                 UserToken: ''
@@ -412,13 +419,85 @@
             // read at the click, so a save queued behind another one keeps what was on screen when it was requested
             function formOptions() {
                 var rewatch = el('#AllowRewatch');
-                return {
+                var options = {
                     ScrobbleMovies: el('#ScrobbleMovies').checked,
                     ScrobbleShows: el('#ScrobbleShows').checked,
                     SyncWatchedMarks: el('#SyncWatchedMarks').checked,
                     AllowRewatch: rewatch.checked && !rewatch.disabled,
                     MinLength: Math.max(0, parseInt(el('#MinLength').value, 10) || 0)
                 };
+                // only once the folder list is on screen for this user: before that an empty list would mean
+                // "nothing has loaded yet", not "nothing is excluded", and saving it would drop the exclusions
+                var excluded = el('#simklExcludedLocations');
+                if (excluded && excluded.getAttribute('data-ready') === '1') {
+                    options.LocationsExcluded = Array.prototype.map.call(
+                        excluded.querySelectorAll('input[data-path]:checked'),
+                        function (box) { return box.getAttribute('data-path'); });
+                }
+
+                return options;
+            }
+
+            /* ---------- excluded folders ---------- */
+
+            function escapeHtml(text) {
+                return String(text).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            function excludedBox(path, checked) {
+                return '<div class="checkboxContainer"><label><input is="emby-checkbox" type="checkbox" data-path="'
+                    + escapeHtml(path) + '"' + (checked ? ' checked' : '') + ' /><span>' + escapeHtml(path)
+                    + '</span></label></div>';
+            }
+
+            // One box per folder of every library, grouped under the library name. A stored path that is no longer
+            // a library folder (the library was removed or moved) is still listed, ticked, so it is neither lost
+            // silently nor impossible to clear.
+            function renderExcluded(userId, stored) {
+                var container = el('#simklExcludedLocations');
+                if (!container) {
+                    return;
+                }
+
+                container.setAttribute('data-ready', '0');
+                container.innerHTML = '';
+                var selected = (stored || []).slice();
+                ApiClient.getVirtualFolders().then(function (folders) {
+                    if (!state.active || !sameGuid(state.userId, userId)) {
+                        return;     // another user was picked while the libraries loaded
+                    }
+
+                    var html = '';
+                    var listed = {};
+                    (folders || []).forEach(function (folder) {
+                        var locations = folder.Locations || [];
+                        if (!locations.length) {
+                            return;
+                        }
+
+                        html += '<div class="fieldDescription" style="margin-top: .75em; font-weight: 600;">' + escapeHtml(folder.Name) + '</div>';
+                        locations.forEach(function (location) {
+                            listed[location] = true;
+                            html += excludedBox(location, selected.indexOf(location) !== -1);
+                        });
+                    });
+
+                    var orphans = selected.filter(function (path) { return !listed[path]; });
+                    if (orphans.length) {
+                        html += '<div class="fieldDescription" style="margin-top: .75em; font-weight: 600;">No longer a library folder</div>';
+                        orphans.forEach(function (path) {
+                            html += excludedBox(path, true);
+                        });
+                    }
+
+                    container.innerHTML = html || '<div class="fieldDescription">This server has no libraries yet.</div>';
+                    container.setAttribute('data-ready', '1');
+                }, function (err) {
+                    console.error('Simkl: could not read the libraries', err);
+                    container.innerHTML = '<div class="fieldDescription">The library folders could not be read, so the exclusions are left as they are.</div>';
+                });
             }
 
             /* ---------- device login ---------- */
@@ -966,6 +1045,7 @@
                     el('#SyncWatchedMarks').checked = entry.SyncWatchedMarks !== false;
                     el('#AllowRewatch').checked = entry.AllowRewatch === true;
                     el('#MinLength').value = String(entry.MinLength === null ? DEFAULTS.MinLength : entry.MinLength);
+                    renderExcluded(userId, entry.LocationsExcluded);
                     el('#AutoImport').checked = entry.AutoImport === true;
                     el('#AutoImportHours').value = String(entry.AutoImportHours || DEFAULTS.AutoImportHours);
                     setVisible(el('#autoImportInterval'), entry.AutoImport === true);

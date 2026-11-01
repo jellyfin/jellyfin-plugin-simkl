@@ -259,6 +259,11 @@ namespace Jellyfin.Plugin.Simkl.Services
                 return false;
             }
 
+            if (config.IsExcluded(playbackProgress.Item?.Path))
+            {
+                return false;
+            }
+
             return playbackProgress.MediaInfo!.Type switch
             {
                 BaseItemKind.Movie => config.ScrobbleMovies,
@@ -332,6 +337,7 @@ namespace Jellyfin.Plugin.Simkl.Services
         {
             return new PlaybackProgressEventArgs
             {
+                Item = stopArgs.Item,
                 MediaInfo = stopArgs.MediaInfo,
                 Session = stopArgs.Session,
                 PlaybackPositionTicks = stopArgs.PlaybackPositionTicks
@@ -1091,7 +1097,7 @@ namespace Jellyfin.Plugin.Simkl.Services
         /// </remarks>
         /// <param name="config">The settings of the user.</param>
         /// <param name="item">The library item.</param>
-        /// <returns><c>true</c> when it is a movie or an episode the user scrobbles and it is long enough.</returns>
+        /// <returns><c>true</c> when it is a movie or an episode the user scrobbles, long enough and outside the excluded folders.</returns>
         public static bool CanBeScrobbled(UserConfig config, BaseItem item)
         {
             ArgumentNullException.ThrowIfNull(config);
@@ -1100,6 +1106,11 @@ namespace Jellyfin.Plugin.Simkl.Services
             // an item without a runtime keeps its place here: nothing can be reported for it anyway, since there is
             // no progress to send
             if (item.RunTimeTicks < 60L * TimeSpan.TicksPerSecond * config.MinLength)
+            {
+                return false;
+            }
+
+            if (config.IsExcluded(item.Path))
             {
                 return false;
             }
