@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Xml.Serialization;
 
 namespace Jellyfin.Plugin.Simkl.Configuration
@@ -35,6 +36,7 @@ namespace Jellyfin.Plugin.Simkl.Configuration
             UserToken = string.Empty;
             RefreshToken = string.Empty;
             TokenScope = string.Empty;
+            LocationsExcluded = Array.Empty<string>();
         }
 
         /// <summary>
@@ -74,6 +76,16 @@ namespace Jellyfin.Plugin.Simkl.Configuration
         /// Gets or sets the minimum length, in minutes, an item must have to be reported.
         /// </summary>
         public int MinLength { get; set; }
+
+        /// <summary>
+        /// Gets or sets the library folders whose items are never reported to Simkl, nor marked from it.
+        /// </summary>
+        /// <remarks>
+        /// Paths as Jellyfin stores a library's locations. An item counts as excluded when its own path is one of these
+        /// or lies anywhere below one, so a whole library is left out by excluding each of its folders. Meant for
+        /// content that has no business on a Simkl profile, or that Simkl can only match by title and so gets wrong.
+        /// </remarks>
+        public string[] LocationsExcluded { get; set; }
 
         /// <summary>
         /// Gets or sets the Simkl access token. Empty when the user is logged out.
@@ -150,6 +162,52 @@ namespace Jellyfin.Plugin.Simkl.Configuration
         public static bool IsOAuth2Token(string? token)
         {
             return token != null && token.StartsWith(OAuth2Prefix, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Tells whether an item at this path sits in one of the excluded folders.
+        /// </summary>
+        /// <param name="path">The item's path, file or folder.</param>
+        /// <returns><c>true</c> when the path is an excluded folder or anywhere inside one.</returns>
+        public bool IsExcluded(string? path)
+        {
+            if (string.IsNullOrEmpty(path) || LocationsExcluded is null)
+            {
+                return false;
+            }
+
+            // Windows paths are case insensitive; elsewhere two folders may differ only in case
+            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            foreach (var location in LocationsExcluded)
+            {
+                if (string.IsNullOrWhiteSpace(location))
+                {
+                    continue;
+                }
+
+                // compared up to a separator, so excluding /media/Clips leaves /media/Clips2 alone
+                var root = location.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (root.Length == 0)
+                {
+                    continue;
+                }
+
+                if (path.Length == root.Length)
+                {
+                    if (path.Equals(root, comparison))
+                    {
+                        return true;
+                    }
+                }
+                else if (path.Length > root.Length
+                    && path.StartsWith(root, comparison)
+                    && (path[root.Length] == Path.DirectorySeparatorChar || path[root.Length] == Path.AltDirectorySeparatorChar))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
