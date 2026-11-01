@@ -37,6 +37,7 @@ namespace Jellyfin.Plugin.Simkl.Services
         private readonly ILibraryManager _libraryManager;
         private readonly User _user;
         private readonly CancellationToken _cancellationToken;
+        private readonly Func<string?, bool> _isExcluded;
         private readonly Dictionary<string, BaseItem> _movies = new Dictionary<string, BaseItem>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Series> _series = new Dictionary<string, Series>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, Episode> _episodesByCoords = new Dictionary<string, Episode>(StringComparer.OrdinalIgnoreCase);
@@ -50,11 +51,13 @@ namespace Jellyfin.Plugin.Simkl.Services
         /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
         /// <param name="user">The user whose library is indexed.</param>
         /// <param name="cancellationToken">The cancellation token of the run.</param>
-        public LibraryIndex(ILibraryManager libraryManager, User user, CancellationToken cancellationToken)
+        /// <param name="isExcluded">Tells an item path in a folder the user excluded from Simkl; such items are never indexed, so the import never marks them. <c>null</c> excludes nothing.</param>
+        public LibraryIndex(ILibraryManager libraryManager, User user, CancellationToken cancellationToken, Func<string?, bool>? isExcluded = null)
         {
             _libraryManager = libraryManager;
             _user = user;
             _cancellationToken = cancellationToken;
+            _isExcluded = isExcluded ?? (_ => false);
         }
 
         /// <summary>
@@ -287,6 +290,11 @@ namespace Jellyfin.Plugin.Simkl.Services
             _moviesRead = true;
             foreach (var item in Query(BaseItemKind.Movie))
             {
+                if (_isExcluded(item.Path))
+                {
+                    continue;
+                }
+
                 MovieCount++;
                 Add(_movies, item, ProviderKeys(item, false));
             }
@@ -302,7 +310,7 @@ namespace Jellyfin.Plugin.Simkl.Services
             _showsRead = true;
             foreach (var item in Query(BaseItemKind.Series))
             {
-                if (item is not Series series)
+                if (item is not Series series || _isExcluded(series.Path))
                 {
                     continue;
                 }
@@ -313,7 +321,7 @@ namespace Jellyfin.Plugin.Simkl.Services
 
             foreach (var item in Query(BaseItemKind.Episode))
             {
-                if (item is not Episode episode)
+                if (item is not Episode episode || _isExcluded(episode.Path))
                 {
                     continue;
                 }
